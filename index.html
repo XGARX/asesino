@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0a0a0c">
+<title>El Asesino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0c;--panel:#131317;--panel2:#1a1a20;--line:#2a2a33;--bone:#ece6d8;--dim:#8f8a80;--gold:#c8a96a;--blood:#b3202c;--blood2:#7d1620}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--bone);font-family:Inter,system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(ellipse at 50% -10%,rgba(179,32,44,.20),transparent 55%),radial-gradient(ellipse at 50% 120%,rgba(200,169,106,.07),transparent 50%);background-attachment:fixed}
+.wrap{max-width:460px;margin:0 auto;padding:22px 16px 40px}
+.brand{font-family:Cinzel,Georgia,serif;letter-spacing:.42em;text-align:center;font-size:13px;color:var(--gold);padding-left:.42em}
+.brand:before,.brand:after{content:"";display:inline-block;width:26px;height:1px;background:var(--gold);opacity:.5;vertical-align:middle;margin:0 10px}
+h1{font-family:Cinzel,Georgia,serif;font-weight:700;text-align:center;font-size:30px;letter-spacing:.04em;margin:14px 0 4px}
+.sub{text-align:center;color:var(--dim);font-size:14px}
+.stats{display:flex;justify-content:center;gap:10px;margin:14px 0 18px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--dim);background:rgba(255,255,255,.02)}
+.chip b{color:var(--bone);font-weight:600}
+.card{position:relative;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:22px 20px;box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);overflow:hidden}
+.card:before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,transparent,var(--blood),transparent)}
+.lbl{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.32em;color:var(--gold);text-transform:uppercase}
+.victim{font-family:Cinzel,Georgia,serif;font-weight:700;font-size:44px;line-height:1.05;margin:6px 0 18px;overflow-wrap:anywhere}
+.mission{font-size:20px;line-height:1.35;margin-top:6px;font-weight:500}
+.hint{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);color:var(--dim);font-size:14px}
+.hint b{color:var(--bone)}
+.secret{transition:filter .25s}
+.hidden .secret{filter:blur(18px);pointer-events:none;user-select:none}
+.veil{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;background:rgba(10,10,12,.55);cursor:pointer;text-align:center;padding:20px}
+.hidden .veil{display:flex}
+.veil .eye{font-size:34px}
+.veil .t{font-family:Cinzel,Georgia,serif;letter-spacing:.2em;font-size:15px}
+.veil .s{color:var(--dim);font-size:13px}
+.hide-btn{display:block;margin:10px auto 0;background:none;border:0;color:var(--dim);font-size:13px;text-decoration:underline;cursor:pointer;padding:6px}
+.btn{display:block;width:100%;border:1px solid var(--line);background:var(--panel2);color:var(--bone);font:600 16px Inter,system-ui,sans-serif;padding:15px;border-radius:12px;cursor:pointer;text-align:center;text-decoration:none}
+.btn:active{transform:translateY(1px)}
+.btn.red{background:linear-gradient(180deg,var(--blood),var(--blood2));border-color:#d23a47;font-family:Cinzel,Georgia,serif;letter-spacing:.18em;font-size:17px;box-shadow:0 10px 30px rgba(179,32,44,.3)}
+.btn.ghost{background:transparent}
+.btn[disabled]{opacity:.5}
+.dead-zone{margin-top:22px}
+.dead-zone small{display:block;text-align:center;color:var(--dim);margin-top:8px;font-size:13px}
+.rules{margin-top:26px;border-top:1px solid var(--line);padding-top:16px}
+.rules ol{list-style:none;counter-reset:r;margin-top:10px}
+.rules li{counter-increment:r;position:relative;padding:0 0 10px 34px;color:#cfc9bc;font-size:15px}
+.rules li:before{content:counter(r);position:absolute;left:0;top:0;width:24px;height:24px;border:1px solid var(--gold);color:var(--gold);border-radius:50%;font:700 12px Cinzel,serif;display:flex;align-items:center;justify-content:center}
+.big{font-size:64px;text-align:center;margin-top:10px}
+.center{text-align:center}
+.banner{background:rgba(200,169,106,.12);border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:10px 14px;text-align:center;margin-bottom:14px;font-weight:600}
+.err{color:#ff8a94;text-align:center;margin-top:14px;font-size:14px;min-height:20px}
+.foot{text-align:center;color:#5d5a54;font-size:12px;margin-top:22px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;padding:20px;z-index:9}
+.modal.on{display:flex}
+.modal .box{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:380px;width:100%;text-align:center}
+.modal h2{font-family:Cinzel,serif;font-size:22px;margin-bottom:8px}
+.modal p{color:var(--dim);margin-bottom:18px}
+.modal .btn+.btn{margin-top:10px}
+
+/* TV */
+.tv{max-width:1500px;margin:0 auto;padding:3vh 3vw}
+.tv header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding-bottom:2vh;flex-wrap:wrap}
+.tv .logo{font-family:Cinzel,serif;font-weight:700;font-size:clamp(30px,5vw,76px);letter-spacing:.12em;line-height:1}
+.tv .logo span{color:var(--blood)}
+.tv .meta{text-align:right;color:var(--dim);font-size:clamp(14px,1.5vw,24px)}
+.tv .meta b{display:block;color:var(--bone);font-family:Cinzel,serif;font-size:clamp(24px,3.4vw,56px);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.tv main{display:grid;grid-template-columns:1.25fr 1fr;gap:3vw;margin-top:3vh}
+.tv h3{font-family:Cinzel,serif;font-size:clamp(12px,1.2vw,18px);letter-spacing:.32em;color:var(--gold);margin-bottom:1.6vh;font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(120px,13vw,220px),1fr));gap:1vw}
+.p{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1.3vh 1vw;font-size:clamp(16px,1.9vw,30px);font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.p .k{color:var(--blood);font-size:.8em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.p .k.z{color:#44424a}
+.p.dead{opacity:.42;text-decoration:line-through;font-weight:400;background:transparent}
+.p.out{opacity:.3;font-weight:400;background:transparent;font-style:italic}
+.tv .deadwrap{margin-top:3vh}
+.feed{display:flex;flex-direction:column;gap:1.2vh}
+.f{background:var(--panel);border-left:3px solid var(--blood);border-radius:0 12px 12px 0;padding:1.3vh 1.2vw;font-size:clamp(15px,1.6vw,26px)}
+.f b{font-weight:600}
+.f i{display:block;color:var(--dim);font-size:.78em;font-style:normal;margin-top:2px}
+.f .h{color:var(--gold);font-size:.7em;margin-right:8px;font-variant-numeric:tabular-nums}
+.f.new{animation:pop 1.2s ease}
+@keyframes pop{0%{background:var(--blood);transform:scale(1.03)}100%{background:var(--panel);transform:none}}
+.empty{color:var(--dim);font-size:clamp(15px,1.5vw,24px)}
+.win{text-align:center;border:1px solid var(--gold);border-radius:18px;padding:4vh 2vw;margin-top:3vh;background:rgba(200,169,106,.08)}
+.win .w{font-family:Cinzel,serif;font-weight:700;font-size:clamp(40px,8vw,130px);line-height:1.05;color:var(--gold)}
+.tvrules{margin-top:4vh;border-top:1px solid var(--line);padding-top:2vh;display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;color:var(--dim);font-size:clamp(13px,1.1vw,19px)}
+.tvrules b{color:var(--bone)}.tvrules>div>b:first-child{color:var(--gold);font-family:Cinzel,serif;margin-right:6px}
+@media(max-width:800px){.tv main{grid-template-columns:1fr}.tvrules{grid-template-columns:1fr}.tv .meta{text-align:left}}
+
+/* admin */
+.adm{max-width:640px;margin:0 auto;padding:18px 14px 60px}
+.adm h2{font-family:Cinzel,serif;font-size:14px;letter-spacing:.28em;color:var(--gold);margin:24px 0 10px;font-weight:500}
+.row{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.row .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.row .n{font-weight:600;font-size:17px}
+.tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:3px 9px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.tag.alive{color:#7ddc9b;border-color:#2c5a3b}.tag.dead{color:#ff8a94;border-color:var(--blood2)}.tag.yes{color:var(--gold);border-color:var(--gold)}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.sm{border:1px solid var(--line);background:var(--panel2);color:var(--bone);font:500 13px Inter,sans-serif;padding:8px 11px;border-radius:9px;cursor:pointer;text-decoration:none}
+.sm.r{border-color:var(--blood2);color:#ff8a94}.sm.g{border-color:var(--gold);color:var(--gold)}
+.bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.inp{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--bone);border-radius:10px;padding:12px;font:16px Inter,sans-serif}
+.addnew{display:grid;grid-template-columns:1fr auto;gap:8px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--bone);color:#111;padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+pre.chain{white-space:pre-wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;font:14px/1.6 Inter,sans-serif;margin-top:8px}
+
+/* tarjetas */
+.print{background:#fff;color:#111;min-height:100vh;padding:10mm}
+.print .tools{margin-bottom:8mm;font:14px Inter,sans-serif}
+.print .tools button{font:600 14px Inter,sans-serif;padding:8px 14px;margin-right:8px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm}
+.tc{border:1.5px solid #111;border-radius:4mm;padding:5mm 4mm;text-align:center;break-inside:avoid;page-break-inside:avoid}
+.tc .b{font-family:Cinzel,serif;letter-spacing:.3em;font-size:9pt;padding-left:.3em}
+.tc .nm{font-family:Cinzel,serif;font-weight:700;font-size:20pt;margin:2mm 0 3mm}
+.tc svg{width:38mm;height:38mm;display:block;margin:0 auto}
+.tc .i{font:9pt/1.35 Inter,sans-serif;margin-top:3mm;color:#333}
+@media print{.print{padding:0}.print .tools{display:none}@page{margin:10mm}}
+</style>
+</head>
+<body>
+<div id="app"><div class="wrap"><div class="brand">EL ASESINO</div><p class="sub" style="margin-top:30px">Cargando...</p></div></div>
+<div class="modal" id="modal"><div class="box" id="modalbox"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbwE8B0si1Or4nLGEtIXpCAvgLnfM4pZis6XaPjo8kzigFT4KDAy8BVsD8nF8w8T3mC2KA/exec';
+var qs = new URLSearchParams(location.search);
+var BASE = location.origin + location.pathname;
+var app = document.getElementById('app');
+var skew = 0;
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function api(params){
+  var u = API + '?' + new URLSearchParams(Object.assign({_: Date.now()}, params)).toString();
+  return fetch(u, {redirect:'follow'}).then(function(r){return r.json()}).then(function(d){
+    if (d && d.now) skew = d.now - Date.now();
+    return d;
+  });
+}
+function toast(t){var el=document.getElementById('toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.remove('on')},2200)}
+function modal(html){document.getElementById('modalbox').innerHTML=html;document.getElementById('modal').classList.add('on')}
+function closeModal(){document.getElementById('modal').classList.remove('on')}
+function countdown(endAt){
+  var ms = endAt - (Date.now() + skew); if (ms < 0) ms = 0;
+  var s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return (h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(x<10?'0':'')+x;
+}
+function hhmm(t){var d=new Date(t);return d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',hour12:false})}
+function winText(w){return w.length>1 ? w.slice(0,-1).join(', ')+' y '+w[w.length-1] : (w[0]||'Nadie')}
+var RULES = [
+  'Cuando tu víctima haga la misión, dile en voz baja <b>«estás muerto»</b>. Si la hace sola, sin que la provoques, <b>cuenta igual</b>.',
+  'Si te matan, aprieta <b>«Me mataron»</b>. Tu asesino hereda tu víctima y su misión.',
+  'Gana el último vivo. A medianoche gana quien tenga más muertes.'
+];
+
+/* ---------------- JUGADOR ---------------- */
+var P = {tok: qs.get('p'), data: null, hidden: true, busy: false, hideT: 0};
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+function playerRender(){
+  var d = P.data, h = '<div class="wrap"><div class="brand">EL ASESINO</div>';
+  if (!d) { app.innerHTML = h + '<p class="sub" style="margin-top:30px">Cargando...</p></div>'; return; }
+  if (!d.ok) { app.innerHTML = h + '<h1>Ups</h1><p class="sub">'+esc(d.err||'Error')+'</p></div>'; return; }
+  h += '<h1>'+esc(d.name)+'</h1>';
+  if (d.game === 'lobby') {
+    h += '<p class="sub">El juego todavía no empieza.</p><div class="big">🕯️</div>'
+      + '<div class="card" style="margin-top:18px"><div class="lbl">Qué hacer</div><p class="mission">Guarda este link. Es secreto y solo tuyo.</p>'
+      + '<p class="hint">Cuando Eddie dé la señal, abre este link y verás a tu <b>víctima</b> y tu <b>misión</b>.</p></div>';
+  } else if (d.game === 'over') {
+    h += '<div class="big">'+(d.won?'🏆':'🥀')+'</div><p class="sub">Se acabó el juego</p>'
+      + '<div class="card" style="margin-top:18px"><div class="lbl">'+(d.winners.length>1?'Ganadores':'Ganador')+'</div><div class="victim" style="color:var(--gold)">'+esc(winText(d.winners))+'</div>'
+      + '<p class="hint">'+(d.won?'Ganaste. Cobra tu respeto.':'Tus muertes: <b>'+d.kills+'</b>')+'</p></div>';
+  } else if (d.st === 'alive') {
+    h += '<div class="stats"><span class="chip">Tus muertes <b>'+d.kills+'</b></span><span class="chip">Vivos <b>'+d.alive+'</b></span><span class="chip">Fin <b>12:00am</b></span></div>';
+    if (P.fresh) h += '<div class="banner">🔪 Tienes nueva víctima</div>';
+    h += '<div class="card '+(P.hidden?'hidden':'')+'" id="card"><div class="secret"><div class="lbl">Tu víctima</div><div class="victim">'+esc(d.target)+'</div>'
+      + '<div class="lbl">Tu misión</div><p class="mission">Haz que '+esc(d.target)+' '+esc(d.mission)+'.</p>'
+      + '<p class="hint">Apenas lo haga (aunque sea sin que la provoques, cuenta igual), dile en voz baja: <b>«estás muerto»</b>.</p></div>'
+      + '<div class="veil" onclick="playerReveal()"><div class="eye">👁</div><div class="t">TOCA PARA VER</div><div class="s">tu víctima y tu misión (que nadie mire)</div></div></div>'
+      + (P.hidden?'':'<button class="hide-btn" onclick="playerHide()">Ocultar</button>')
+      + '<div class="dead-zone"><button class="btn red" onclick="playerAskDie()">ME MATARON</button><small>Apriétalo solo si tu asesino te dijo «estás muerto».</small></div>';
+  } else if (d.st === 'dead') {
+    h += '<div class="big">💀</div><p class="sub">Estás muerto</p>'
+      + '<div class="card" style="margin-top:18px"><div class="lbl">Te mató</div><div class="victim">'+esc(d.killedBy||'?')+'</div>'
+      + '<p class="hint">Ya no juegas, pero la fiesta sigue. <b>No le digas a nadie</b> quién te tenía ni cuál era tu misión.</p></div>';
+  } else {
+    h += '<p class="sub">'+(d.st==='out'?'Saliste del juego.':'Todavía no estás en el juego.')+'</p><div class="big">🚪</div>'
+      + '<div class="card" style="margin-top:18px"><p class="mission">Dile a Eddie que te meta al juego.</p></div>';
+  }
+  h += '<div class="rules"><div class="lbl">Cómo se juega</div><ol>'+RULES.map(function(r){return '<li>'+r+'</li>'}).join('')+'</ol></div>';
+  h += '<div class="err" id="err"></div><a class="btn ghost" href="'+BASE+'" style="margin-top:8px">Ver marcador</a><div class="foot">Este link es solo tuyo. No lo compartas.</div></div>';
+  app.innerHTML = h;
+}
+function playerLoad(){
+  if (P.busy) return;
+  api({a:'me', t:P.tok}).then(function(d){
+    if (d.ok && d.target) {
+      var prev = ls('asesino_t_'+P.tok);
+      if (prev && prev !== d.target) { P.fresh = true; P.hidden = true; }
+      ls('asesino_t_'+P.tok, d.target);
+    }
+    var same = P.data && JSON.stringify(strip(P.data)) === JSON.stringify(strip(d));
+    P.data = d; if (!same) playerRender();
+  }).catch(function(){ var e=document.getElementById('err'); if(e) e.textContent='Sin conexión. Reintentando...'; if(!P.data){P.data={ok:false,err:'Sin conexión. Recarga la página.'};playerRender();P.data=null} });
+}
+function strip(d){var o=Object.assign({},d);delete o.now;return o}
+function playerReveal(){P.hidden=false;P.fresh=false;playerRender();clearTimeout(P.hideT);P.hideT=setTimeout(playerHide,25000)}
+function playerHide(){P.hidden=true;playerRender()}
+function playerAskDie(){
+  modal('<h2>¿Te mataron?</h2><p>Solo confirma si tu asesino cumplió su misión y te dijo «estás muerto». No hay vuelta atrás.</p>'
+    +'<button class="btn red" id="yes" onclick="playerDie()">SÍ, ME MATARON</button><button class="btn ghost" onclick="closeModal()">No, sigo vivo</button>');
+}
+function playerDie(){
+  var b=document.getElementById('yes'); b.disabled=true; b.textContent='Muriendo...'; P.busy=true;
+  api({a:'die', t:P.tok}).then(function(d){P.busy=false;closeModal();P.data=d;playerRender()})
+    .catch(function(){P.busy=false;b.disabled=false;b.textContent='SÍ, ME MATARON';toast('Sin conexión. Intenta otra vez.')});
+}
+
+/* ---------------- MARCADOR TV ---------------- */
+var TV = {data:null, seen:0, first:true};
+function tvRender(){
+  var d = TV.data; if (!d || !d.ok) return;
+  var alive = d.players.filter(function(p){return p.st==='alive'||p.st==='wait'});
+  var dead = d.players.filter(function(p){return p.st==='dead'});
+  var out = d.players.filter(function(p){return p.st==='out'});
+  alive.sort(function(a,b){return b.kills-a.kills});
+  var h = '<div class="tv"><header><div class="logo">EL <span>ASESINO</span></div><div class="meta">';
+  if (d.game==='lobby') h += '<b>Por empezar</b>'+alive.length+' en la lista';
+  else if (d.game==='running') h += '<b id="cd">'+countdown(d.endAt)+'</b>para medianoche · '+alive.length+' vivos';
+  else h += '<b>Fin</b>del juego';
+  h += '</div></header>';
+  if (d.game==='over') h += '<div class="win"><h3>'+(d.winners.length>1?'GANADORES':'GANADOR')+'</h3><div class="w">'+esc(winText(d.winners))+'</div></div>';
+  h += '<main><section><h3>'+(d.game==='lobby'?'JUGADORES':'SIGUEN VIVOS')+'</h3><div class="grid">'
+    + alive.map(function(p){return '<div class="p"><span>'+esc(p.name)+'</span>'+(d.game==='lobby'?'':'<span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'0')+'</span>')+'</div>'}).join('') + '</div>';
+  if (dead.length||out.length) h += '<div class="deadwrap"><h3>CAÍDOS</h3><div class="grid">'
+    + dead.map(function(p){return '<div class="p dead"><span>'+esc(p.name)+'</span><span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'')+'</span></div>'}).join('')
+    + out.map(function(p){return '<div class="p out"><span>'+esc(p.name)+' (se fue)</span></div>'}).join('') + '</div></div>';
+  h += '</section><section><h3>ÚLTIMAS MUERTES</h3><div class="feed">';
+  var feed = d.feed.slice().reverse();
+  if (!feed.length) h += '<div class="empty">'+(d.game==='lobby'?'Abre tu link secreto y espera la señal.':'Todavía nadie ha muerto. Qué tensión.')+'</div>';
+  h += feed.slice(0,9).map(function(f){
+    var isNew = !TV.first && f.t > TV.seen;
+    return '<div class="f'+(isNew?' new':'')+'"><span class="h">'+hhmm(f.t)+'</span><b>'+esc(f.v)+'</b> cayó a manos de <b>'+esc(f.k)+'</b><i>Misión: hacer que '+esc(f.v)+' '+esc(f.m)+'</i></div>';
+  }).join('');
+  h += '</div></section></main><div class="tvrules">'+RULES.map(function(r,i){return '<div><b>'+(i+1)+'</b>'+r+'</div>'}).join('')+'</div></div>';
+  app.innerHTML = h;
+  if (feed.length) TV.seen = feed[0].t;
+  TV.first = false;
+}
+function tvLoad(){api({a:'board'}).then(function(d){
+  var same = TV.data && JSON.stringify(strip(TV.data))===JSON.stringify(strip(d));
+  TV.data=d; if(!same) tvRender();
+}).catch(function(){})}
+function tvTick(){var el=document.getElementById('cd'); if(el&&TV.data) el.textContent=countdown(TV.data.endAt)}
+
+/* ---------------- ADMIN ---------------- */
+var A = {k: qs.get('admin'), data:null, chain:null};
+function link(p){return BASE+'?p='+p.token}
+function waText(p){return '🔪 EL ASESINO. '+p.name+', este es tu link secreto para el juego del sábado. No lo compartas ni lo abras delante de nadie: '+link(p)}
+function adminCall(params, okMsg){
+  params.k = A.k;
+  return api(params).then(function(d){
+    if (!d.ok) { toast(d.err||'Error'); return null; }
+    if (d.players) { A.data = d; adminRender(); }
+    if (okMsg) toast(okMsg);
+    return d;
+  }).catch(function(){toast('Sin conexión')});
+}
+function adminRender(){
+  var d = A.data; if (!d) return;
+  var st = {lobby:'Lobby (no ha empezado)', running:'En juego', over:'Terminado'}[d.game];
+  var alive = d.players.filter(function(p){return p.st==='alive'}).length;
+  var pres = d.players.filter(function(p){return p.present}).length;
+  var h = '<div class="adm"><div class="brand">ADMIN</div><h1 style="font-size:24px">'+st+'</h1><p class="sub">'
+    + (d.game==='lobby' ? pres+' marcados como presentes' : d.game==='running' ? alive+' vivos · termina en '+countdown(d.endAt) : 'Ganó: '+esc(winText(d.winners))) + '</p><div class="bar">';
+  if (d.game==='lobby') h += '<button class="btn red" style="grid-column:1/3" onclick="adminStart()">EMPEZAR JUEGO</button>';
+  if (d.game==='running') h += '<button class="btn" onclick="adminEnd()">Terminar ahora</button>';
+  if (d.game!=='lobby') h += '<button class="btn" onclick="adminReset()">Reiniciar</button>';
+  h += '<a class="btn ghost" href="'+BASE+'" target="_blank">Marcador TV</a><a class="btn ghost" href="'+BASE+'?admin='+encodeURIComponent(A.k)+'&print=1" target="_blank">Tarjetas QR</a>'
+    + '<button class="btn ghost" onclick="adminCopyAll()">Copiar todos los links</button><button class="btn ghost" onclick="adminChain()">Ver cadena (spoiler)</button></div>';
+  if (A.chain) h += '<pre class="chain">'+A.chain.map(function(c){return esc(c.join(' → ')+' → '+c[0])}).join('\n')+'</pre><button class="hide-btn" onclick="A.chain=null;adminRender()">Ocultar cadena</button>';
+  h += '<h2>JUGADORES</h2>';
+  d.players.forEach(function(p){
+    var tag, acts = '';
+    if (d.game==='lobby') {
+      tag = p.present ? '<span class="tag yes">Presente</span>' : '<span class="tag">No viene</span>';
+      acts += p.present ? '<button class="sm" onclick="adminDo(\'remove\',\''+p.id+'\')">Quitar</button>' : '<button class="sm g" onclick="adminDo(\'add\',\''+p.id+'\')">Marcar presente</button>';
+    } else {
+      tag = p.st==='alive' ? '<span class="tag alive">Vivo · '+p.kills+'</span>' : p.st==='dead' ? '<span class="tag dead">Muerto · '+p.kills+'</span>' : p.st==='out' ? '<span class="tag">Se fue</span>' : '<span class="tag">Fuera</span>';
+      if (p.st==='alive') acts += '<button class="sm r" onclick="adminRemove(\''+p.id+'\')">Sacar (se va)</button>';
+      else if (p.st==='dead') acts += '<button class="sm g" onclick="adminUndo(\''+p.id+'\')">Deshacer muerte</button>';
+      else if (d.game==='running') acts += '<button class="sm g" onclick="adminAdd(\''+p.id+'\')">Meter al juego</button>';
+    }
+    acts += '<button class="sm" onclick="adminCopy(\''+p.id+'\')">Copiar link</button>'
+      + '<a class="sm" target="_blank" href="https://wa.me/?text='+encodeURIComponent(waText(p))+'">WhatsApp</a>'
+      + '<button class="sm" onclick="adminMission(\''+p.id+'\')">Misión</button>';
+    h += '<div class="row"><div class="top"><span class="n">'+esc(p.name)+'</span>'+tag+'</div><div class="acts">'+acts+'</div></div>';
+  });
+  if (d.game!=='over') h += '<h2>LLEGÓ ALGUIEN QUE NO ESTÁ EN LA LISTA</h2><div class="addnew"><input class="inp" id="newname" placeholder="Nombre" maxlength="20"><button class="btn" style="width:auto" onclick="adminNew()">Agregar</button></div>';
+  if (d.game==='lobby') h += '<div class="bar"><button class="btn ghost" style="grid-column:1/3" onclick="adminReset()">Reiniciar todo</button></div>';
+  h += '</div>';
+  app.innerHTML = h;
+}
+function byId(id){return A.data.players.filter(function(p){return p.id===id})[0]}
+function adminDo(a,id){adminCall({a:a,id:id})}
+function adminStart(){if(confirm('¿Empezar el juego con los marcados como presentes? Se arma la cadena.'))adminCall({a:'start'},'Juego empezado')}
+function adminEnd(){if(confirm('¿Terminar el juego ahora? Gana quien tenga más muertes.'))adminCall({a:'end'})}
+function adminReset(){if(confirm('¿Reiniciar TODO? Se borran muertes y cadena.')&&confirm('Seguro seguro. Esto no se puede deshacer.')){A.chain=null;adminCall({a:'reset'},'Reiniciado')}}
+function adminRemove(id){if(confirm('¿Sacar a '+byId(id).name+' del juego? Su asesino hereda su víctima.'))adminCall({a:'remove',id:id},'Listo')}
+function adminAdd(id){if(confirm('¿Meter a '+byId(id).name+' al juego? Se inserta en la cadena.'))adminCall({a:'add',id:id},'Adentro')}
+function adminUndo(id){if(confirm('¿Deshacer la muerte de '+byId(id).name+'? Vuelve a la cadena.'))adminCall({a:'undo',id:id},'Muerte deshecha')}
+function adminNew(){var n=document.getElementById('newname').value.trim();if(!n)return toast('Pon el nombre');adminCall({a:'addnew',name:n},'Agregado. Mándale su link.')}
+function adminMission(id){
+  var p=byId(id);
+  var t=prompt('Misión contra '+p.name+'. Se lee: "Haz que '+p.name+' ..."'+(p.m===null?'\n(La tuya está oculta. Deja vacío para no cambiarla.)':''), p.m||'');
+  if(t&&t.trim()&&t!==p.m)adminCall({a:'setmission',id:id,m:t.trim()},'Misión guardada');
+}
+function copy(t,msg){
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast(msg)},function(){prompt('Copia:',t)})}
+  else prompt('Copia:',t);
+}
+function adminCopy(id){copy(link(byId(id)),'Link copiado')}
+function adminCopyAll(){copy(A.data.players.map(function(p){return p.name+': '+link(p)}).join('\n'),'Todos los links copiados')}
+function adminChain(){
+  if(A.data.game==='lobby')return toast('Todavía no hay cadena');
+  if(!confirm('Esto te muestra quién tiene a quién. Tú también juegas. ¿Seguro?'))return;
+  adminCall({a:'chain'}).then(function(d){if(d){A.chain=d.chain;adminRender()}});
+}
+
+/* ---------------- TARJETAS ---------------- */
+function printRender(d){
+  document.body.style.background='#fff';
+  var h='<div class="print"><div class="tools"><button onclick="window.print()">Imprimir</button> Una tarjeta por persona. Recorta y reparte al llegar.</div><div class="cards">';
+  d.players.forEach(function(p){
+    var q=qrcode(0,'M');q.addData(link(p));q.make();
+    h+='<div class="tc"><div class="b">EL ASESINO</div><div class="nm">'+esc(p.name)+'</div>'+q.createSvgTag({cellSize:4,margin:0,scalable:true})
+      +'<div class="i"><b>Escanea con tu cámara.</b><br>Es secreto. Que nadie vea tu pantalla.</div></div>';
+  });
+  app.innerHTML=h+'</div></div>';
+}
+
+/* ---------------- ARRANQUE ---------------- */
+if (P.tok) {
+  playerRender(); playerLoad();
+  setInterval(function(){ if (!document.hidden) playerLoad(); }, 10000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) playerLoad(); });
+} else if (A.k && qs.get('print')) {
+  var sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+  sc.onload=function(){api({a:'admin',k:A.k}).then(function(d){d.ok?printRender(d):(app.innerHTML='<div class="wrap"><h1>No autorizado</h1></div>')})};
+  document.head.appendChild(sc);
+} else if (A.k) {
+  api({a:'admin',k:A.k}).then(function(d){ if(d.ok){A.data=d;adminRender()} else app.innerHTML='<div class="wrap"><div class="brand">ADMIN</div><h1>No autorizado</h1></div>'; });
+  setInterval(function(){ if (!document.hidden && !document.activeElement.matches('input')) api({a:'admin',k:A.k}).then(function(d){ if(d.ok){ var same=JSON.stringify(strip(A.data))===JSON.stringify(strip(d)); A.data=d; if(!same) adminRender(); } }).catch(function(){}); }, 8000);
+} else {
+  tvLoad(); setInterval(tvLoad, 5000); setInterval(tvTick, 1000);
+}
+</script>
+</body>
+</html>
