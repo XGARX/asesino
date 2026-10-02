@@ -107,6 +107,13 @@ h1{font-family:Cinzel,Georgia,serif;font-weight:700;text-align:center;font-size:
 .addnew{display:grid;grid-template-columns:1fr auto;gap:8px}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--bone);color:#111;padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:90vw;text-align:center}
 .toast.on{opacity:1}
+.fl{display:block;text-align:left;font-size:12px;letter-spacing:.06em;color:var(--gold);margin:12px 0 5px}
+.modal textarea.inp{resize:vertical;min-height:64px;line-height:1.35}
+.modal .inp+.btn,.modal .cks+.btn{margin-top:16px}
+.cks{text-align:left;max-height:46vh;overflow:auto;margin-bottom:4px}
+.ck{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;font-size:17px;font-weight:600;cursor:pointer}
+.ck input{width:22px;height:22px;accent-color:var(--blood)}
+.w2{font-family:Cinzel,serif;font-weight:700;font-size:clamp(22px,3.6vw,56px);color:var(--gold);line-height:1.15}
 pre.chain{white-space:pre-wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;font:14px/1.6 Inter,sans-serif;margin-top:8px}
 
 /* tarjetas */
@@ -158,7 +165,15 @@ var RULES = [
 ];
 
 /* ---------------- JUGADOR ---------------- */
-var P = {tok: qs.get('p'), data: null, hidden: true, busy: false, hideT: 0};
+var P = {tok: qs.get('p'), data: null, hidden: true, busy: false, hideT: 0, seenT: 0};
+var NOTE = {
+  kill: '🔪 Tienes nueva víctima',
+  rule: 'Tu víctima cambió. Regla: nadie caza a su pareja ni a su hermano.',
+  r2: 'Ronda 2: tienes víctima y misión nuevas',
+  chg: 'Tu víctima cambió. Mira la nueva.'
+};
+function noteSeen(){return Math.max(P.seenT, parseInt(ls('asesino_n_'+P.tok)||'0',10)||0)}
+function noteNew(d){return !!(d && d.note && NOTE[d.note.k] && d.note.t > noteSeen())}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
 function playerRender(){
   var d = P.data, h = '<div class="wrap"><div class="brand">EL ASESINO</div>';
@@ -173,9 +188,13 @@ function playerRender(){
     h += '<div class="big">'+(d.won?'🏆':'🥀')+'</div><p class="sub">Se acabó el juego</p>'
       + '<div class="card" style="margin-top:18px"><div class="lbl">'+(d.winners.length>1?'Ganadores':'Ganador')+'</div><div class="victim" style="color:var(--gold)">'+esc(winText(d.winners))+'</div>'
       + '<p class="hint">'+(d.won?'Ganaste. Cobra tu respeto.':'Tus muertes: <b>'+d.kills+'</b>')+'</p></div>';
+  } else if (d.st === 'alive' && d.solo) {
+    h += '<div class="big">🕯️</div><p class="sub">Eres el último vivo</p>'
+      + '<div class="card" style="margin-top:18px"><div class="lbl">Ronda 1 terminada</div><p class="mission">Sobreviviste con '+d.kills+(d.kills===1?' muerte':' muertes')+'. Las conservas.</p>'
+      + '<p class="hint">Viene la <b>ronda 2</b>: los muertos pueden revivir y vas a recibir víctima y misión nuevas. Esta pantalla se actualiza sola.</p></div>';
   } else if (d.st === 'alive') {
-    h += '<div class="stats"><span class="chip">Tus muertes <b>'+d.kills+'</b></span><span class="chip">Vivos <b>'+d.alive+'</b></span><span class="chip">Fin <b>12:00am</b></span></div>';
-    if (P.fresh) h += '<div class="banner">🔪 Tienes nueva víctima</div>';
+    h += '<div class="stats">'+(d.round>=2?'<span class="chip">Ronda <b>2</b></span>':'')+'<span class="chip">Tus muertes <b>'+d.kills+'</b></span><span class="chip">Vivos <b>'+d.alive+'</b></span><span class="chip">Fin <b>12:00am</b></span></div>';
+    if (noteNew(d)) h += '<div class="banner">'+NOTE[d.note.k]+'</div>';
     h += '<div class="card '+(P.hidden?'hidden':'')+'" id="card"><div class="secret"><div class="lbl">Tu víctima</div><div class="victim">'+esc(d.target)+'</div>'
       + '<div class="lbl">Tu misión</div><p class="mission">Haz que '+esc(d.target)+' '+esc(d.mission)+'.</p>'
       + '<p class="hint">Apenas lo haga (aunque sea sin que la provoques, cuenta igual), dile en voz baja: <b>«estás muerto»</b>.</p></div>'
@@ -184,8 +203,9 @@ function playerRender(){
       + '<div class="dead-zone"><button class="btn red" onclick="playerAskDie()">ME MATARON</button><small>Apriétalo solo si tu asesino te dijo «estás muerto».</small></div>';
   } else if (d.st === 'dead') {
     h += '<div class="big">💀</div><p class="sub">Estás muerto</p>'
+      + (d.round<2 ? '<div class="banner">Más tarde puedes revivir cantando. Te avisan.</div>' : '')
       + '<div class="card" style="margin-top:18px"><div class="lbl">Te mató</div><div class="victim">'+esc(d.killedBy||'?')+'</div>'
-      + '<p class="hint">Ya no juegas, pero la fiesta sigue. <b>No le digas a nadie</b> quién te tenía ni cuál era tu misión.</p></div>';
+      + '<p class="hint">'+(d.round<2?'Esta pantalla se actualiza sola si revives. ':'Ya no juegas, pero la fiesta sigue. ')+'<b>No le digas a nadie</b> quién te tenía ni cuál era tu misión.</p></div>';
   } else {
     h += '<p class="sub">'+(d.st==='out'?'Saliste del juego.':'Todavía no estás en el juego.')+'</p><div class="big">🚪</div>'
       + '<div class="card" style="margin-top:18px"><p class="mission">Dile a Eddie que te meta al juego.</p></div>';
@@ -197,17 +217,14 @@ function playerRender(){
 function playerLoad(){
   if (P.busy) return;
   api({a:'me', t:P.tok}).then(function(d){
-    if (d.ok && d.target) {
-      var prev = ls('asesino_t_'+P.tok);
-      if (prev && prev !== d.target) { P.fresh = true; P.hidden = true; }
-      ls('asesino_t_'+P.tok, d.target);
-    }
+    // aviso nuevo (nueva víctima, ronda 2, cambio por regla): se vuelve a tapar la tarjeta
+    if (noteNew(d) && !(P.data && P.data.note && P.data.note.t === d.note.t)) { P.hidden = true; clearTimeout(P.hideT); }
     var same = P.data && JSON.stringify(strip(P.data)) === JSON.stringify(strip(d));
     P.data = d; if (!same) playerRender();
   }).catch(function(){ var e=document.getElementById('err'); if(e) e.textContent='Sin conexión. Reintentando...'; if(!P.data){P.data={ok:false,err:'Sin conexión. Recarga la página.'};playerRender();P.data=null} });
 }
 function strip(d){var o=Object.assign({},d);delete o.now;return o}
-function playerReveal(){P.hidden=false;P.fresh=false;playerRender();clearTimeout(P.hideT);P.hideT=setTimeout(playerHide,25000)}
+function playerReveal(){P.hidden=false;if(P.data&&P.data.note){P.seenT=P.data.note.t;ls('asesino_n_'+P.tok,String(P.seenT))}playerRender();clearTimeout(P.hideT);P.hideT=setTimeout(playerHide,25000)}
 function playerHide(){P.hidden=true;playerRender()}
 function playerAskDie(){
   modal('<h2>¿Te mataron?</h2><p>Solo confirma si tu asesino cumplió su misión y te dijo «estás muerto». No hay vuelta atrás.</p>'
@@ -229,10 +246,11 @@ function tvRender(){
   alive.sort(function(a,b){return b.kills-a.kills});
   var h = '<div class="tv"><header><div class="logo">EL <span>ASESINO</span></div><div class="meta">';
   if (d.game==='lobby') h += '<b>Por empezar</b>'+alive.length+' en la lista';
-  else if (d.game==='running') h += '<b id="cd">'+countdown(d.endAt)+'</b>para medianoche · '+alive.length+' vivos';
+  else if (d.game==='running') h += '<b id="cd">'+countdown(d.endAt)+'</b>para medianoche · '+alive.length+(alive.length===1?' vivo':' vivos')+(d.round>=2?' · Ronda 2':'');
   else h += '<b>Fin</b>del juego';
   h += '</div></header>';
   if (d.game==='over') h += '<div class="win"><h3>'+(d.winners.length>1?'GANADORES':'GANADOR')+'</h3><div class="w">'+esc(winText(d.winners))+'</div></div>';
+  if (d.wait2) h += '<div class="win"><h3>FIN DE LA RONDA 1</h3><div class="w2">Queda un solo vivo. Viene la ronda 2: los muertos pueden revivir cantando.</div></div>';
   h += '<main><section><h3>'+(d.game==='lobby'?'JUGADORES':'SIGUEN VIVOS')+'</h3><div class="grid">'
     + alive.map(function(p){return '<div class="p"><span>'+esc(p.name)+'</span>'+(d.game==='lobby'?'':'<span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'0')+'</span>')+'</div>'}).join('') + '</div>';
   if (dead.length||out.length) h += '<div class="deadwrap"><h3>CAÍDOS</h3><div class="grid">'
@@ -271,12 +289,13 @@ function adminCall(params, okMsg){
 }
 function adminRender(){
   var d = A.data; if (!d) return;
-  var st = {lobby:'Lobby (no ha empezado)', running:'En juego', over:'Terminado'}[d.game];
+  var st = {lobby:'Lobby (no ha empezado)', running:'En juego · Ronda '+d.round, over:'Terminado'}[d.game];
   var alive = d.players.filter(function(p){return p.st==='alive'}).length;
   var pres = d.players.filter(function(p){return p.present}).length;
   var h = '<div class="adm"><div class="brand">ADMIN</div><h1 style="font-size:24px">'+st+'</h1><p class="sub">'
     + (d.game==='lobby' ? pres+' marcados como presentes' : d.game==='running' ? alive+' vivos · termina en '+countdown(d.endAt) : 'Ganó: '+esc(winText(d.winners))) + '</p><div class="bar">';
   if (d.game==='lobby') h += '<button class="btn red" style="grid-column:1/3" onclick="adminStart()">EMPEZAR JUEGO</button>';
+  if (d.game!=='lobby' && d.round===1) h += '<button class="btn red" style="grid-column:1/3" onclick="adminRound2()">INICIAR RONDA 2</button>';
   if (d.game==='running') h += '<button class="btn" onclick="adminEnd()">Terminar ahora</button>';
   if (d.game!=='lobby') h += '<button class="btn" onclick="adminReset()">Reiniciar</button>';
   h += '<a class="btn ghost" href="'+BASE+'" target="_blank">Marcador TV</a><a class="btn ghost" href="'+BASE+'?admin='+encodeURIComponent(A.k)+'&print=1" target="_blank">Tarjetas QR</a>'
@@ -291,12 +310,13 @@ function adminRender(){
     } else {
       tag = p.st==='alive' ? '<span class="tag alive">Vivo · '+p.kills+'</span>' : p.st==='dead' ? '<span class="tag dead">Muerto · '+p.kills+'</span>' : p.st==='out' ? '<span class="tag">Se fue</span>' : '<span class="tag">Fuera</span>';
       if (p.st==='alive') acts += '<button class="sm r" onclick="adminRemove(\''+p.id+'\')">Sacar (se va)</button>';
+      else if (p.st==='dead' && p.dr && p.dr<d.round) acts += '<button class="sm g" onclick="adminRevive(\''+p.id+'\')">Revivir (cantó)</button>';
       else if (p.st==='dead') acts += '<button class="sm g" onclick="adminUndo(\''+p.id+'\')">Deshacer muerte</button>';
       else if (d.game==='running') acts += '<button class="sm g" onclick="adminAdd(\''+p.id+'\')">Meter al juego</button>';
     }
     acts += '<button class="sm" onclick="adminCopy(\''+p.id+'\')">Copiar link</button>'
       + '<a class="sm" target="_blank" href="https://wa.me/?text='+encodeURIComponent(waText(p))+'">WhatsApp</a>'
-      + '<button class="sm" onclick="adminMission(\''+p.id+'\')">Misión</button>';
+      + '<button class="sm" onclick="adminEdit(\''+p.id+'\')">Editar</button>';
     h += '<div class="row"><div class="top"><span class="n">'+esc(p.name)+'</span>'+tag+'</div><div class="acts">'+acts+'</div></div>';
   });
   if (d.game!=='over') h += '<h2>LLEGÓ ALGUIEN QUE NO ESTÁ EN LA LISTA</h2><div class="addnew"><input class="inp" id="newname" placeholder="Nombre" maxlength="20"><button class="btn" style="width:auto" onclick="adminNew()">Agregar</button></div>';
@@ -306,17 +326,47 @@ function adminRender(){
 }
 function byId(id){return A.data.players.filter(function(p){return p.id===id})[0]}
 function adminDo(a,id){adminCall({a:a,id:id})}
-function adminStart(){if(confirm('¿Empezar el juego con los marcados como presentes? Se arma la cadena.'))adminCall({a:'start'},'Juego empezado')}
-function adminEnd(){if(confirm('¿Terminar el juego ahora? Gana quien tenga más muertes.'))adminCall({a:'end'})}
-function adminReset(){if(confirm('¿Reiniciar TODO? Se borran muertes y cadena.')&&confirm('Seguro seguro. Esto no se puede deshacer.')){A.chain=null;adminCall({a:'reset'},'Reiniciado')}}
-function adminRemove(id){if(confirm('¿Sacar a '+byId(id).name+' del juego? Su asesino hereda su víctima.'))adminCall({a:'remove',id:id},'Listo')}
-function adminAdd(id){if(confirm('¿Meter a '+byId(id).name+' al juego? Se inserta en la cadena.'))adminCall({a:'add',id:id},'Adentro')}
-function adminUndo(id){if(confirm('¿Deshacer la muerte de '+byId(id).name+'? Vuelve a la cadena.'))adminCall({a:'undo',id:id},'Muerte deshecha')}
+function ask(title, text, okLabel, fn, red){
+  window._askFn = fn;
+  modal('<h2>'+esc(title)+'</h2><p>'+esc(text)+'</p><button class="btn'+(red?' red':'')+'" id="askok" onclick="closeModal();window._askFn()">'+esc(okLabel)+'</button><button class="btn ghost" onclick="closeModal()">Cancelar</button>');
+}
+function adminStart(){ask('¿Empezar el juego?','Se arma la cadena con los marcados como presentes. El juego termina a medianoche.','EMPEZAR',function(){adminCall({a:'start'},'Juego empezado')},true)}
+function adminEnd(){ask('¿Terminar ahora?','Gana quien tenga más muertes entre los vivos.','Terminar',function(){adminCall({a:'end'})})}
+function adminReset(){ask('¿Reiniciar todo?','Se borran muertes, cadena y ronda. Se conservan nombres y misiones editadas.','Reiniciar',function(){
+  ask('¿Seguro seguro?','Esto no se puede deshacer.','SÍ, REINICIAR',function(){A.chain=null;adminCall({a:'reset'},'Reiniciado')},true)})}
+function adminRemove(id){ask('¿Sacar a '+byId(id).name+'?','Sale del juego y su asesino hereda su víctima.','Sacar',function(){adminCall({a:'remove',id:id},'Listo')})}
+function adminAdd(id){ask('¿Meter a '+byId(id).name+'?','Se inserta en la cadena en un lugar al azar.','Meter al juego',function(){adminCall({a:'add',id:id},'Adentro')})}
+function adminUndo(id){ask('¿Deshacer la muerte de '+byId(id).name+'?','Vuelve a la cadena y a su asesino se le resta la muerte.','Deshacer',function(){adminCall({a:'undo',id:id},'Muerte deshecha')})}
+function adminRevive(id){ask('¿Revivir a '+byId(id).name+'?','Entra a la ronda 2 con 0 muertes, víctima y misión nuevas.','Revivir',function(){adminCall({a:'revive',id:id},'Revivido')})}
 function adminNew(){var n=document.getElementById('newname').value.trim();if(!n)return toast('Pon el nombre');adminCall({a:'addnew',name:n},'Agregado. Mándale su link.')}
-function adminMission(id){
-  var p=byId(id);
-  var t=prompt('Misión contra '+p.name+'. Se lee: "Haz que '+p.name+' ..."'+(p.m===null?'\n(La tuya está oculta. Deja vacío para no cambiarla.)':''), p.m||'');
-  if(t&&t.trim()&&t!==p.m)adminCall({a:'setmission',id:id,m:t.trim()},'Misión guardada');
+function adminEdit(id){
+  var p=byId(id), hid=p.m1===null;
+  modal('<h2>Editar</h2>'
+    +'<label class="fl">NOMBRE VISIBLE</label><input class="inp" id="e_name" maxlength="20" value="'+esc(p.name)+'">'
+    +'<label class="fl">MISIÓN RONDA 1: «Haz que '+esc(p.name)+' ...»</label><textarea class="inp" id="e_m1" maxlength="140" placeholder="'+(hid?'Oculta: es la tuya. Escribe solo si quieres cambiarla a ciegas.':'')+'">'+esc(p.m1||'')+'</textarea>'
+    +'<label class="fl">MISIÓN RONDA 2</label><textarea class="inp" id="e_m2" maxlength="140" placeholder="'+(hid?'Oculta: es la tuya.':'Vacía: recibe una genérica al azar.')+'">'+esc(p.m2||'')+'</textarea>'
+    +'<button class="btn red" id="e_save" onclick="adminSaveEdit(\''+id+'\')">GUARDAR</button><button class="btn ghost" onclick="closeModal()">Cancelar</button>');
+}
+function adminSaveEdit(id){
+  var p=byId(id), g=function(x){return document.getElementById(x).value.trim()}, n=g('e_name'), m1=g('e_m1'), m2=g('e_m2'), jobs=[];
+  if(n && n!==p.name) jobs.push({a:'setname',id:id,name:n});
+  if(m1 && m1!==(p.m1||'')) jobs.push({a:'setmission',id:id,r:1,m:m1});
+  if(m2 && m2!==(p.m2||'')) jobs.push({a:'setmission',id:id,r:2,m:m2});
+  closeModal();
+  if(!jobs.length) return toast('Sin cambios');
+  jobs.reduce(function(pr,j){return pr.then(function(ok){return ok===null?null:adminCall(j)})},Promise.resolve(true)).then(function(ok){if(ok)toast('Guardado')});
+}
+function adminRound2(){
+  var dead=A.data.players.filter(function(p){return p.st==='dead'});
+  modal('<h2>Ronda 2</h2><p>'+(dead.length?'Marca a los que reviven (los que cantaron).':'No hay muertos. Solo se rebaraja la cadena y cambian las misiones.')+'</p><div class="cks">'
+    +dead.map(function(p){return '<label class="ck"><input type="checkbox" value="'+p.id+'"> '+esc(p.name)+'</label>'}).join('')+'</div>'
+    +'<button class="btn red" id="r2next" onclick="adminRound2Confirm()">CONTINUAR</button><button class="btn ghost" onclick="closeModal()">Cancelar</button>');
+}
+function adminRound2Confirm(){
+  var ids=[].map.call(document.querySelectorAll('.cks input:checked'),function(x){return x.value});
+  var names=ids.map(function(id){return byId(id).name});
+  ask('¿Iniciar ronda 2?',(names.length?'Reviven: '+names.join(', ')+'. ':'No revive nadie. ')+'Todos los vivos reciben víctima y misión nuevas. Los sobrevivientes conservan sus muertes. No se puede deshacer.','INICIAR RONDA 2',
+    function(){A.chain=null;adminCall({a:'round2',ids:ids.join(',')},'Ronda 2 iniciada')},true);
 }
 function copy(t,msg){
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast(msg)},function(){prompt('Copia:',t)})}
@@ -326,8 +376,8 @@ function adminCopy(id){copy(link(byId(id)),'Link copiado')}
 function adminCopyAll(){copy(A.data.players.map(function(p){return p.name+': '+link(p)}).join('\n'),'Todos los links copiados')}
 function adminChain(){
   if(A.data.game==='lobby')return toast('Todavía no hay cadena');
-  if(!confirm('Esto te muestra quién tiene a quién. Tú también juegas. ¿Seguro?'))return;
-  adminCall({a:'chain'}).then(function(d){if(d){A.chain=d.chain;adminRender()}});
+  ask('¿Ver la cadena?','Esto te muestra quién tiene a quién. Tú también juegas.','Ver cadena (spoiler)',function(){
+    adminCall({a:'chain'}).then(function(d){if(d){A.chain=d.chain;adminRender()}})});
 }
 
 /* ---------------- TARJETAS ---------------- */
@@ -345,7 +395,7 @@ function printRender(d){
 /* ---------------- ARRANQUE ---------------- */
 if (P.tok) {
   playerRender(); playerLoad();
-  setInterval(function(){ if (!document.hidden) playerLoad(); }, 10000);
+  setInterval(function(){ if (!document.hidden) playerLoad(); }, 7000);
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) playerLoad(); });
 } else if (A.k && qs.get('print')) {
   var sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
@@ -353,7 +403,7 @@ if (P.tok) {
   document.head.appendChild(sc);
 } else if (A.k) {
   api({a:'admin',k:A.k}).then(function(d){ if(d.ok){A.data=d;adminRender()} else app.innerHTML='<div class="wrap"><div class="brand">ADMIN</div><h1>No autorizado</h1></div>'; });
-  setInterval(function(){ if (!document.hidden && !document.activeElement.matches('input')) api({a:'admin',k:A.k}).then(function(d){ if(d.ok){ var same=JSON.stringify(strip(A.data))===JSON.stringify(strip(d)); A.data=d; if(!same) adminRender(); } }).catch(function(){}); }, 8000);
+  setInterval(function(){ if (!document.hidden && !document.activeElement.matches('input,textarea')) api({a:'admin',k:A.k}).then(function(d){ if(d.ok){ var same=JSON.stringify(strip(A.data))===JSON.stringify(strip(d)); A.data=d; if(!same) adminRender(); } }).catch(function(){}); }, 8000);
 } else {
   tvLoad(); setInterval(tvLoad, 5000); setInterval(tvTick, 1000);
 }
