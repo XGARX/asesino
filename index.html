@@ -49,6 +49,9 @@ h1{font-family:Cinzel,Georgia,serif;font-weight:700;text-align:center;font-size:
 .rules ol{list-style:none;counter-reset:r;margin-top:10px}
 .rules li{counter-increment:r;position:relative;padding:0 0 10px 34px;color:#cfc9bc;font-size:15px}
 .rules li:before{content:counter(r);position:absolute;left:0;top:0;width:24px;height:24px;border:1px solid var(--gold);color:var(--gold);border-radius:50%;font:700 12px Cinzel,serif;display:flex;align-items:center;justify-content:center}
+.sub+.banner{margin-top:14px}
+.pista{margin-top:14px;border:1px dashed var(--line);border-radius:12px;padding:11px 14px;color:var(--dim);font-size:14px;text-align:center}
+.pista b{color:var(--bone)}
 .big{font-size:64px;text-align:center;margin-top:10px}
 .center{text-align:center}
 .banner{background:rgba(200,169,106,.12);border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:10px 14px;text-align:center;margin-bottom:14px;font-weight:600}
@@ -191,7 +194,7 @@ function playerRender(){
   } else if (d.st === 'alive' && d.solo) {
     h += '<div class="big">🕯️</div><p class="sub">Eres el último vivo</p>'
       + '<div class="card" style="margin-top:18px"><div class="lbl">Ronda 1 terminada</div><p class="mission">Sobreviviste con '+d.kills+(d.kills===1?' muerte':' muertes')+'. Las conservas.</p>'
-      + '<p class="hint">Viene la <b>ronda 2</b>: los muertos pueden revivir y vas a recibir víctima y misión nuevas. Esta pantalla se actualiza sola.</p></div>';
+      + '<p class="hint">Espera instrucciones de Eddie. Esta pantalla se actualiza sola.</p></div>';
   } else if (d.st === 'alive') {
     h += '<div class="stats">'+(d.round>=2?'<span class="chip">Ronda <b>2</b></span>':'')+'<span class="chip">Tus muertes <b>'+d.kills+'</b></span><span class="chip">Vivos <b>'+d.alive+'</b></span><span class="chip">Fin <b>12:00am</b></span></div>';
     if (noteNew(d)) h += '<div class="banner">'+NOTE[d.note.k]+'</div>';
@@ -200,12 +203,13 @@ function playerRender(){
       + '<p class="hint">Apenas lo haga (aunque sea sin que la provoques, cuenta igual), dile en voz baja: <b>«estás muerto»</b>.</p></div>'
       + '<div class="veil" onclick="playerReveal()"><div class="eye">👁</div><div class="t">TOCA PARA VER</div><div class="s">tu víctima y tu misión (que nadie mire)</div></div></div>'
       + (P.hidden?'':'<button class="hide-btn" onclick="playerHide()">Ocultar</button>')
+      + (d.hint ? '<div class="pista"><b>Pista sobre ti:</b> quien te caza necesita que '+(d.hint==='d'?'<b>digas</b> algo. Cuidado con lo que dices.':'<b>hagas</b> algo. Cuidado con lo que haces.')+'</div>' : '')
       + '<div class="dead-zone"><button class="btn red" onclick="playerAskDie()">ME MATARON</button><small>Apriétalo solo si tu asesino te dijo «estás muerto».</small></div>';
   } else if (d.st === 'dead') {
-    h += '<div class="big">💀</div><p class="sub">Estás muerto</p>'
-      + (d.round<2 ? '<div class="banner">Más tarde puedes revivir cantando. Te avisan.</div>' : '')
+    h += '<div class="big">'+(d.round<2?'👻':'💀')+'</div><p class="sub">'+(d.round<2?'Estás muerto. Ahora eres un fantasma.':'Estás muerto')+'</p>'
+      + (d.round<2 ? '<div class="banner">Ya no juegas, pero hay una pequeña posibilidad de que revivas.</div>' : '')
       + '<div class="card" style="margin-top:18px"><div class="lbl">Te mató</div><div class="victim">'+esc(d.killedBy||'?')+'</div>'
-      + '<p class="hint">'+(d.round<2?'Esta pantalla se actualiza sola si revives. ':'Ya no juegas, pero la fiesta sigue. ')+'<b>No le digas a nadie</b> quién te tenía ni cuál era tu misión.</p></div>';
+      + '<p class="hint">'+(d.round<2?'Esta pantalla se actualiza sola. ':'Ya no juegas, pero la fiesta sigue. ')+'<b>No le digas a nadie</b> quién te tenía ni cuál era tu misión.</p></div>';
   } else {
     h += '<p class="sub">'+(d.st==='out'?'Saliste del juego.':'Todavía no estás en el juego.')+'</p><div class="big">🚪</div>'
       + '<div class="card" style="margin-top:18px"><p class="mission">Dile a Eddie que te meta al juego.</p></div>';
@@ -250,7 +254,7 @@ function tvRender(){
   else h += '<b>Fin</b>del juego';
   h += '</div></header>';
   if (d.game==='over') h += '<div class="win"><h3>'+(d.winners.length>1?'GANADORES':'GANADOR')+'</h3><div class="w">'+esc(winText(d.winners))+'</div></div>';
-  if (d.wait2) h += '<div class="win"><h3>FIN DE LA RONDA 1</h3><div class="w2">Queda un solo vivo. Viene la ronda 2: los muertos pueden revivir cantando.</div></div>';
+  if (d.wait2) h += '<div class="win"><h3>ÚLTIMO VIVO</h3><div class="w2">Queda un solo vivo. Atentos a lo que diga Eddie.</div></div>';
   h += '<main><section><h3>'+(d.game==='lobby'?'JUGADORES':'SIGUEN VIVOS')+'</h3><div class="grid">'
     + alive.map(function(p){return '<div class="p"><span>'+esc(p.name)+'</span>'+(d.game==='lobby'?'':'<span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'0')+'</span>')+'</div>'}).join('') + '</div>';
   if (dead.length||out.length) h += '<div class="deadwrap"><h3>CAÍDOS</h3><div class="grid">'
