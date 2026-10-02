@@ -455,7 +455,7 @@ function ask(title, text, okLabel, fn, red){
 }
 function adminStart(){ask('¿Empezar el juego?','Se arma la cadena con los marcados como presentes. El juego termina a medianoche.','EMPEZAR',function(){adminCall({a:'start'},'Juego empezado')},true)}
 function adminEnd(){ask('¿Terminar ahora?','Gana quien tenga más muertes entre los vivos.','Terminar',function(){adminCall({a:'end'})})}
-function adminReset(){ask('¿Reiniciar todo?','Se borran muertes, cadena y ronda. Se conservan nombres y misiones editadas.','Reiniciar',function(){
+function adminReset(){ask('¿Reiniciar todo?','Se borran muertes, cadena y ronda. Se conservan los jugadores (también los que agregaste), sus nombres, sus links y sus misiones.','Reiniciar',function(){
   ask('¿Seguro seguro?','Esto no se puede deshacer.','SÍ, REINICIAR',function(){A.chain=null;adminCall({a:'reset'},'Reiniciado')},true)})}
 function adminRemove(id){ask('¿Sacar a '+byId(id).name+'?','Sale del juego y su asesino hereda su víctima.','Sacar',function(){adminCall({a:'remove',id:id},'Listo')})}
 function adminAdd(id){ask('¿Meter a '+byId(id).name+'?','Se inserta en la cadena en un lugar al azar.','Meter al juego',function(){adminCall({a:'add',id:id},'Adentro')})}
@@ -509,7 +509,7 @@ function adminGuide(){
       '<b>Muerte por error o en broma:</b> «Deshacer muerte». Vuelve a la cadena y al asesino se le resta.',
       '<b>Discusión sobre si cumplió la misión:</b> decides tú. Si la muerte es tuya, decide Cami. Sin testigos, gana la víctima.',
       '<b>Nadie muere:</b> a las 9:30 aprieta «Iniciar ronda 2» sin marcar a nadie. Rebaraja todo y pone las misiones fáciles.',
-      '<b>Mueren muy rápido o queda uno solo temprano:</b> «Abrir resurrección» y luego ronda 2. O «Reiniciar» y «Empezar juego»: una partida nueva tarda 10 segundos.',
+      '<b>Mueren muy rápido o queda uno solo temprano:</b> «Abrir resurrección», que canten, y luego «Iniciar ronda 2».',
       '<b>La página no carga:</b> reintenta sola. Si es el wifi, que usen datos. Nada se pierde: el juego queda guardado y sigue donde iba.'])
     +'</div><button class="btn ghost" style="margin-top:14px" onclick="closeModal()">Cerrar</button>');
 }
