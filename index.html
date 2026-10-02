@@ -69,6 +69,7 @@ h1{font-family:Cinzel,Georgia,serif;font-weight:700;text-align:center;font-size:
 .tv header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding-bottom:2vh;flex-wrap:wrap}
 .tv .logo{font-family:Cinzel,serif;font-weight:700;font-size:clamp(30px,5vw,76px);letter-spacing:.12em;line-height:1}
 .tv .logo span{color:var(--blood)}
+.rb{display:inline-block;vertical-align:middle;margin-left:.5em;font-style:normal;font-size:.36em;letter-spacing:.22em;color:var(--gold);border:2px solid var(--gold);border-radius:999px;padding:.35em .9em .3em 1.1em;position:relative;top:-.25em}
 .tv .meta{text-align:right;color:var(--dim);font-size:clamp(14px,1.5vw,24px)}
 .tv .meta b{display:block;color:var(--bone);font-family:Cinzel,serif;font-size:clamp(24px,3.4vw,56px);letter-spacing:.06em;font-variant-numeric:tabular-nums}
 .tv main{display:grid;grid-template-columns:1.25fr 1fr;gap:3vw;margin-top:3vh}
@@ -77,7 +78,7 @@ h1{font-family:Cinzel,Georgia,serif;font-weight:700;text-align:center;font-size:
 .p{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1.3vh 1vw;font-size:clamp(16px,1.9vw,30px);font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .p .k{color:var(--blood);font-size:.8em;white-space:nowrap;font-variant-numeric:tabular-nums}
 .p .k.z{color:#44424a}
-.p.dead{opacity:.42;text-decoration:line-through;font-weight:400;background:transparent}
+.p.dead{opacity:.5;font-weight:400;background:transparent}
 .p.out{opacity:.3;font-weight:400;background:transparent;font-style:italic}
 .tv .deadwrap{margin-top:3vh}
 .feed{display:flex;flex-direction:column;gap:1.2vh}
@@ -168,15 +169,22 @@ var RULES = [
 ];
 
 /* ---------------- JUGADOR ---------------- */
-var P = {tok: qs.get('p'), data: null, hidden: true, busy: false, hideT: 0, seenT: 0};
+var P = {tok: qs.get('p'), data: null, hidden: true, busy: false, seen: null, key: ''};
 var NOTE = {
   kill: '🔪 Tienes nueva víctima',
   rule: 'Tu víctima cambió. Regla: nadie caza a su pareja ni a su hermano.',
   r2: 'Ronda 2: tienes víctima y misión nuevas',
   chg: 'Tu víctima cambió. Mira la nueva.'
 };
-function noteSeen(){return Math.max(P.seenT, parseInt(ls('asesino_n_'+P.tok)||'0',10)||0)}
-function noteNew(d){return !!(d && d.note && NOTE[d.note.k] && d.note.t > noteSeen())}
+// El aviso (nueva víctima, ronda 2, cambio) se muestra durante 2 minutos desde la primera vez que se ve.
+function noteShow(d){
+  if (!(d && d.note && NOTE[d.note.k])) return false;
+  var rec = P.seen;
+  if (!rec) { try { rec = JSON.parse(ls('asesino_s_'+P.tok) || 'null'); } catch(e) { rec = null; } }
+  if (!rec || rec.t !== d.note.t) { rec = {t: d.note.t, at: Date.now()}; ls('asesino_s_'+P.tok, JSON.stringify(rec)); }
+  P.seen = rec;
+  return Date.now() - rec.at < 120000;
+}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
 function playerRender(){
   var d = P.data, h = '<div class="wrap"><div class="brand">EL ASESINO</div>';
@@ -197,7 +205,7 @@ function playerRender(){
       + '<p class="hint">Espera instrucciones de Eddie. Esta pantalla se actualiza sola.</p></div>';
   } else if (d.st === 'alive') {
     h += '<div class="stats">'+(d.round>=2?'<span class="chip">Ronda <b>2</b></span>':'')+'<span class="chip">Tus muertes <b>'+d.kills+'</b></span><span class="chip">Vivos <b>'+d.alive+'</b></span><span class="chip">Fin <b>12:00am</b></span></div>';
-    if (noteNew(d)) h += '<div class="banner">'+NOTE[d.note.k]+'</div>';
+    if (noteShow(d)) h += '<div class="banner">'+NOTE[d.note.k]+'</div>';
     h += '<div class="card '+(P.hidden?'hidden':'')+'" id="card"><div class="secret"><div class="lbl">Tu víctima</div><div class="victim">'+esc(d.target)+'</div>'
       + '<div class="lbl">Tu misión</div><p class="mission">Haz que '+esc(d.target)+' '+esc(d.mission)+'.</p>'
       + '<p class="hint">Apenas lo haga (aunque sea sin que la provoques, cuenta igual), dile en voz baja: <b>«estás muerto»</b>.</p></div>'
@@ -209,34 +217,34 @@ function playerRender(){
     h += '<div class="big">'+(d.round<2?'👻':'💀')+'</div><p class="sub">'+(d.round<2?'Estás muerto. Ahora eres un fantasma.':'Estás muerto')+'</p>'
       + (d.round<2 ? '<div class="banner">Ya no juegas, pero hay una pequeña posibilidad de que revivas.</div>' : '')
       + '<div class="card" style="margin-top:18px"><div class="lbl">Te mató</div><div class="victim">'+esc(d.killedBy||'?')+'</div>'
-      + '<p class="hint">'+(d.round<2?'Esta pantalla se actualiza sola. ':'Ya no juegas, pero la fiesta sigue. ')+'<b>No le digas a nadie</b> quién te tenía ni cuál era tu misión.</p></div>';
+      + '<p class="hint">'+(d.round<2?'Esta pantalla se actualiza sola. ':'Ya no juegas, pero la fiesta sigue. ')+'<b>Guarda el secreto:</b> no cuentes quién te mató ni a quién estabas cazando.</p></div>';
   } else {
     h += '<p class="sub">'+(d.st==='out'?'Saliste del juego.':'Todavía no estás en el juego.')+'</p><div class="big">🚪</div>'
       + '<div class="card" style="margin-top:18px"><p class="mission">Dile a Eddie que te meta al juego.</p></div>';
   }
   h += '<div class="rules"><div class="lbl">Cómo se juega</div><ol>'+RULES.map(function(r){return '<li>'+r+'</li>'}).join('')+'</ol></div>';
-  h += '<div class="err" id="err"></div><a class="btn ghost" href="'+BASE+'" style="margin-top:8px">Ver marcador</a><div class="foot">Este link es solo tuyo. No lo compartas.</div></div>';
+  h += '<div class="err" id="err"></div><button class="hide-btn" style="margin:0 auto 10px" onclick="playerLoad(true)">Esta pantalla se actualiza sola · Actualizar ahora</button><a class="btn ghost" href="'+BASE+'" style="margin-top:8px">Ver marcador</a><div class="foot">Este link es solo tuyo. No lo compartas.</div></div>';
   app.innerHTML = h;
 }
-function playerLoad(){
+function playerLoad(force){
   if (P.busy) return;
   api({a:'me', t:P.tok}).then(function(d){
-    // aviso nuevo (nueva víctima, ronda 2, cambio por regla): se vuelve a tapar la tarjeta
-    if (noteNew(d) && !(P.data && P.data.note && P.data.note.t === d.note.t)) { P.hidden = true; clearTimeout(P.hideT); }
-    var same = P.data && JSON.stringify(strip(P.data)) === JSON.stringify(strip(d));
-    P.data = d; if (!same) playerRender();
+    var key = JSON.stringify(strip(d)) + '|' + noteShow(d) + '|' + P.hidden;
+    P.data = d; if (key !== P.key) { P.key = key; playerRender(); }
+    if (force) toast('Actualizado');
   }).catch(function(){ var e=document.getElementById('err'); if(e) e.textContent='Sin conexión. Reintentando...'; if(!P.data){P.data={ok:false,err:'Sin conexión. Recarga la página.'};playerRender();P.data=null} });
 }
 function strip(d){var o=Object.assign({},d);delete o.now;return o}
-function playerReveal(){P.hidden=false;if(P.data&&P.data.note){P.seenT=P.data.note.t;ls('asesino_n_'+P.tok,String(P.seenT))}playerRender();clearTimeout(P.hideT);P.hideT=setTimeout(playerHide,25000)}
-function playerHide(){P.hidden=true;playerRender()}
+// Una vez revelada, la tarjeta se queda visible (también al recargar) hasta que aprieten "Ocultar".
+function playerReveal(){P.hidden=false;ls('asesino_r_'+P.tok,'1');P.key='';playerRender()}
+function playerHide(){P.hidden=true;ls('asesino_r_'+P.tok,'0');P.key='';playerRender()}
 function playerAskDie(){
   modal('<h2>¿Te mataron?</h2><p>Solo confirma si tu asesino cumplió su misión y te dijo «estás muerto». No hay vuelta atrás.</p>'
     +'<button class="btn red" id="yes" onclick="playerDie()">SÍ, ME MATARON</button><button class="btn ghost" onclick="closeModal()">No, sigo vivo</button>');
 }
 function playerDie(){
   var b=document.getElementById('yes'); b.disabled=true; b.textContent='Muriendo...'; P.busy=true;
-  api({a:'die', t:P.tok}).then(function(d){P.busy=false;closeModal();P.data=d;playerRender()})
+  api({a:'die', t:P.tok}).then(function(d){P.busy=false;closeModal();P.data=d;P.key='';playerRender()})
     .catch(function(){P.busy=false;b.disabled=false;b.textContent='SÍ, ME MATARON';toast('Sin conexión. Intenta otra vez.')});
 }
 
@@ -248,7 +256,7 @@ function tvRender(){
   var dead = d.players.filter(function(p){return p.st==='dead'});
   var out = d.players.filter(function(p){return p.st==='out'});
   alive.sort(function(a,b){return b.kills-a.kills});
-  var h = '<div class="tv"><header><div class="logo">EL <span>ASESINO</span></div><div class="meta">';
+  var h = '<div class="tv"><header><div class="logo">EL <span>ASESINO</span>'+(d.round>=2&&d.game!=='lobby'?'<em class="rb">RONDA 2</em>':'')+'</div><div class="meta">';
   if (d.game==='lobby') h += '<b>Por empezar</b>'+alive.length+' en la lista';
   else if (d.game==='running') h += '<b id="cd">'+countdown(d.endAt)+'</b>para medianoche · '+alive.length+(alive.length===1?' vivo':' vivos')+(d.round>=2?' · Ronda 2':'');
   else h += '<b>Fin</b>del juego';
@@ -257,8 +265,8 @@ function tvRender(){
   if (d.wait2) h += '<div class="win"><h3>ÚLTIMO VIVO</h3><div class="w2">Queda un solo vivo. Atentos a lo que diga Eddie.</div></div>';
   h += '<main><section><h3>'+(d.game==='lobby'?'JUGADORES':'SIGUEN VIVOS')+'</h3><div class="grid">'
     + alive.map(function(p){return '<div class="p"><span>'+esc(p.name)+'</span>'+(d.game==='lobby'?'':'<span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'0')+'</span>')+'</div>'}).join('') + '</div>';
-  if (dead.length||out.length) h += '<div class="deadwrap"><h3>CAÍDOS</h3><div class="grid">'
-    + dead.map(function(p){return '<div class="p dead"><span>'+esc(p.name)+'</span><span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'')+'</span></div>'}).join('')
+  if (dead.length||out.length) h += '<div class="deadwrap"><h3>'+(d.round>=2?'CAÍDOS':'FANTASMAS')+'</h3><div class="grid">'
+    + dead.map(function(p){return '<div class="p dead"><span>'+(d.round>=2?'💀 ':'👻 ')+esc(p.name)+'</span><span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'')+'</span></div>'}).join('')
     + out.map(function(p){return '<div class="p out"><span>'+esc(p.name)+' (se fue)</span></div>'}).join('') + '</div></div>';
   h += '</section><section><h3>ÚLTIMAS MUERTES</h3><div class="feed">';
   var feed = d.feed.slice().reverse();
@@ -398,6 +406,7 @@ function printRender(d){
 
 /* ---------------- ARRANQUE ---------------- */
 if (P.tok) {
+  P.hidden = ls('asesino_r_'+P.tok) !== '1';
   playerRender(); playerLoad();
   setInterval(function(){ if (!document.hidden) playerLoad(); }, 7000);
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) playerLoad(); });
