@@ -190,9 +190,9 @@ function countdown(endAt){
 function hhmm(t){var d=new Date(t);return d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',hour12:false})}
 function winText(w){return w.length>1 ? w.slice(0,-1).join(', ')+' y '+w[w.length-1] : (w[0]||'Nadie')}
 var RULES = [
-  'Cuando tu víctima haga la misión, dile en voz baja <b>«estás muerto»</b> y la <b>palabra secreta</b> de tu tarjeta. Si la hace sola, sin que la provoques, <b>cuenta igual</b>.',
+  'Cuando tu víctima haga la misión <b>tal como está escrita</b>, dile en voz baja <b>«estás muerto»</b> y la <b>palabra secreta</b> de tu tarjeta. Si la hace sola, sin que la provoques, <b>cuenta igual</b>. Si hay duda, <b>no cuenta</b>: sigue intentando.',
   'Si te matan, aprieta <b>«Me mataron»</b> y confirma la palabra. Tu asesino hereda tu víctima y su misión.',
-  'Gana el último vivo. A medianoche gana quien tenga más muertes.'
+  'Gana el último vivo. A medianoche gana quien tenga más asesinatos.'
 ];
 
 /* ---------------- JUGADOR ---------------- */
@@ -258,7 +258,7 @@ function playerRender(){
       + '<p class="hint2">'+esc(d.word||'')+' es la palabra secreta que prueba que eres su asesino.</p></div>'
       + '<div class="veil" onclick="playerReveal()"><div class="eye">👁</div><div class="t">TOCA PARA VER</div><div class="s">tu víctima y tu misión (que nadie mire)</div></div></div>'
       + (P.hidden?'':'<button class="hide-btn" onclick="playerHide()">Ocultar</button>')
-      + (d.hint ? '<div class="pista"><b>Pista sobre ti:</b> quien te caza necesita que '+(d.hint==='d'?'<b>digas</b> algo. Cuidado con lo que dices.':'<b>hagas</b> algo. Cuidado con lo que haces.')+'</div>' : '')
+      + (d.hintx ? '<div class="pista"><b>Pista sobre ti:</b> '+esc(d.hintx)+'</div>' : d.hint ? '<div class="pista"><b>Pista sobre ti:</b> quien te caza necesita que '+(d.hint==='d'?'<b>digas</b> algo. Cuidado con lo que dices.':'<b>hagas</b> algo. Cuidado con lo que haces.')+'</div>' : '')
       + '<div class="dead-zone"><button class="btn red" onclick="playerAskDie()">ME MATARON</button><small>Apriétalo solo si tu asesino te dijo «estás muerto».</small></div>';
   } else if (d.st === 'dead') {
     h += '<div class="big">'+(d.round<2?'👻':'💀')+'</div><p class="sub">'+(d.round<2?'Estás muerto. Ahora eres un fantasma.':'Estás muerto')+'</p>'
@@ -457,13 +457,13 @@ function ask(title, text, okLabel, fn, red){
   modal('<h2>'+esc(title)+'</h2><p>'+esc(text)+'</p><button class="btn'+(red?' red':'')+'" id="askok" onclick="closeModal();window._askFn()">'+esc(okLabel)+'</button><button class="btn ghost" onclick="closeModal()">Cancelar</button>');
 }
 function adminStart(){ask('¿Empezar el juego?','Se arma la cadena con los marcados como presentes. El juego termina a medianoche.','EMPEZAR',function(){adminCall({a:'start'},'Juego empezado')},true)}
-function adminEnd(){ask('¿Terminar ahora?','Gana quien tenga más muertes entre los vivos.','Terminar',function(){adminCall({a:'end'})})}
+function adminEnd(){ask('¿Terminar ahora?','Gana quien tenga más asesinatos entre los vivos.','Terminar',function(){adminCall({a:'end'})})}
 function adminReset(){ask('¿Reiniciar todo?','Se borran muertes, cadena y ronda. Se conservan los jugadores (también los que agregaste), sus nombres, sus links y sus misiones.','Reiniciar',function(){
   ask('¿Seguro seguro?','Esto no se puede deshacer.','SÍ, REINICIAR',function(){A.chain=null;adminCall({a:'reset'},'Reiniciado')},true)})}
 function adminRemove(id){ask('¿Sacar a '+byId(id).name+'?','Sale del juego y su asesino hereda su víctima.','Sacar',function(){adminCall({a:'remove',id:id},'Listo')})}
 function adminAdd(id){ask('¿Meter a '+byId(id).name+'?','Se inserta en la cadena en un lugar al azar.','Meter al juego',function(){adminCall({a:'add',id:id},'Adentro')})}
 function adminUndo(id){ask('¿Deshacer la muerte de '+byId(id).name+'?','Vuelve a la cadena y a su asesino se le resta la muerte.','Deshacer',function(){adminCall({a:'undo',id:id},'Muerte deshecha')})}
-function adminRevive(id){ask('¿Revivir a '+byId(id).name+'?','Entra a la ronda 2 con 0 muertes, víctima y misión nuevas.','Revivir',function(){adminCall({a:'revive',id:id},'Revivido')})}
+function adminRevive(id){ask('¿Revivir a '+byId(id).name+'?','Entra a la ronda 2 con 0 asesinatos, víctima y misión nuevas.','Revivir',function(){adminCall({a:'revive',id:id},'Revivido')})}
 function adminDelete(id){ask('¿Borrar a '+byId(id).name+'?','Sale de la lista y su link deja de funcionar. No afecta a los demás.','BORRAR',function(){adminCall({a:'delete',id:id},'Borrado')},true)}
 function adminRestore(){ask('¿Restaurar borrados?','Vuelven a la lista los jugadores originales que borraste, marcados como "No viene".','Restaurar',function(){adminCall({a:'restore'},'Restaurados')})}
 function adminNew(){var n=document.getElementById('newname').value.trim();if(!n)return toast('Pon el nombre');adminCall({a:'addnew',name:n},'Agregado. Mándale su link.')}
@@ -472,14 +472,20 @@ function adminEdit(id){
   modal('<h2>Editar</h2>'
     +'<label class="fl">NOMBRE VISIBLE</label><input class="inp" id="e_name" maxlength="20" value="'+esc(p.name)+'">'
     +'<label class="fl">MISIÓN RONDA 1: «Haz que '+esc(p.name)+' ...»</label><textarea class="inp" id="e_m1" maxlength="140" placeholder="'+(hid?'Oculta: es la tuya. Escribe solo si quieres cambiarla a ciegas.':'')+'">'+esc(p.m1||'')+'</textarea>'
+    +'<label class="fl">PISTA QUE VE '+esc(p.name).toUpperCase()+' EN RONDA 1 (opcional)</label><input class="inp" id="e_h1" maxlength="120" placeholder="'+autoHint(p.k1)+'" value="'+esc(p.h1||'')+'">'
     +'<label class="fl">MISIÓN RONDA 2</label><textarea class="inp" id="e_m2" maxlength="140" placeholder="'+(hid?'Oculta: es la tuya.':'Vacía: recibe una genérica al azar.')+'">'+esc(p.m2||'')+'</textarea>'
+    +'<label class="fl">PISTA QUE VE EN RONDA 2 (opcional)</label><input class="inp" id="e_h2" maxlength="120" placeholder="'+autoHint(p.k2)+'" value="'+esc(p.h2||'')+'">'
+    +'<p class="hint2" style="text-align:left">La pista la ve la víctima en su propia pantalla. Vacía = automática.</p>'
     +'<button class="btn red" id="e_save" onclick="adminSaveEdit(\''+id+'\')">GUARDAR</button><button class="btn ghost" onclick="closeModal()">Cancelar</button>');
 }
+function autoHint(k){return k==='d'?'Automática: cuidado con lo que dices':k==='h'?'Automática: cuidado con lo que haces':'Automática'}
 function adminSaveEdit(id){
-  var p=byId(id), g=function(x){return document.getElementById(x).value.trim()}, n=g('e_name'), m1=g('e_m1'), m2=g('e_m2'), jobs=[];
+  var p=byId(id), g=function(x){return document.getElementById(x).value.trim()}, n=g('e_name'), m1=g('e_m1'), m2=g('e_m2'), h1=g('e_h1'), h2=g('e_h2'), jobs=[];
   if(n && n!==p.name) jobs.push({a:'setname',id:id,name:n});
   if(m1 && m1!==(p.m1||'')) jobs.push({a:'setmission',id:id,r:1,m:m1});
   if(m2 && m2!==(p.m2||'')) jobs.push({a:'setmission',id:id,r:2,m:m2});
+  if(h1!==(p.h1||'')) jobs.push({a:'sethint',id:id,r:1,h:h1});
+  if(h2!==(p.h2||'')) jobs.push({a:'sethint',id:id,r:2,h:h2});
   closeModal();
   if(!jobs.length) return toast('Sin cambios');
   jobs.reduce(function(pr,j){return pr.then(function(ok){return ok===null?null:adminCall(j)})},Promise.resolve(true)).then(function(ok){if(ok)toast('Guardado')});
@@ -530,7 +536,7 @@ function adminRound2(){
 function adminRound2Confirm(){
   var ids=[].map.call(document.querySelectorAll('.cks input:checked'),function(x){return x.value});
   var names=ids.map(function(id){return byId(id).name});
-  ask('¿Iniciar ronda 2?',(names.length?'Reviven: '+names.join(', ')+'. ':'No revive nadie. ')+'Todos los vivos reciben víctima y misión nuevas. Los sobrevivientes conservan sus muertes. No se puede deshacer.','INICIAR RONDA 2',
+  ask('¿Iniciar ronda 2?',(names.length?'Reviven: '+names.join(', ')+'. ':'No revive nadie. ')+'Todos los vivos reciben víctima y misión nuevas. Los sobrevivientes conservan sus asesinatos. No se puede deshacer.','INICIAR RONDA 2',
     function(){A.chain=null;adminCall({a:'round2',ids:ids.join(',')},'Ronda 2 iniciada')},true);
 }
 function copy(t,msg){
