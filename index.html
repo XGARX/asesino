@@ -55,6 +55,7 @@ h1{font-family:Cinzel,Georgia,serif;font-weight:700;text-align:center;font-size:
 .big{font-size:64px;text-align:center;margin-top:10px}
 .center{text-align:center}
 .banner{background:rgba(200,169,106,.12);border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:10px 14px;text-align:center;margin-bottom:14px;font-weight:600}
+.banner.old{background:transparent;border-color:var(--line);color:var(--dim);font-weight:500;font-size:14px;padding:8px 12px}
 .err{color:#ff8a94;text-align:center;margin-top:14px;font-size:14px;min-height:20px}
 .foot{text-align:center;color:#5d5a54;font-size:12px;margin-top:22px}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;padding:20px;z-index:9}
@@ -170,14 +171,17 @@ var RULES = [
 
 /* ---------------- JUGADOR ---------------- */
 var P = {tok: qs.get('p'), data: null, hidden: true, busy: false, seen: null, key: ''};
+// Aviso permanente con la hora del cambio. Los primeros 2 minutos sale resaltado, después queda discreto.
 var NOTE = {
-  kill: '🔪 Tienes nueva víctima',
-  rule: 'Tu víctima cambió. Regla: nadie caza a su pareja ni a su hermano.',
-  r2: 'Ronda 2: tienes víctima y misión nuevas',
-  chg: 'Tu víctima cambió. Mira la nueva.'
+  kill: ['🔪 Tienes nueva víctima', 'desde las'],
+  rule: ['Tu víctima cambió', 'a las', ' (nadie caza a su pareja ni a su hermano)'],
+  r2: ['Ronda 2: tienes víctima y misión nuevas', 'desde las'],
+  chg: ['Tu víctima cambió', 'a las']
 };
-// El aviso (nueva víctima, ronda 2, cambio) se muestra durante 2 minutos desde la primera vez que se ve.
-function noteShow(d){
+function hora(t){try{return new Date(t).toLocaleTimeString('es',{hour:'numeric',minute:'2-digit',hour12:true})}catch(e){return hhmm(t)}}
+function noteText(d){var n=NOTE[d.note.k];return n[0]+' '+n[1]+' '+hora(d.note.t)+(n[2]||'')}
+// true = aviso recién visto (menos de 2 minutos desde la primera vez que se mostró en este teléfono)
+function noteFresh(d){
   if (!(d && d.note && NOTE[d.note.k])) return false;
   var rec = P.seen;
   if (!rec) { try { rec = JSON.parse(ls('asesino_s_'+P.tok) || 'null'); } catch(e) { rec = null; } }
@@ -205,8 +209,8 @@ function playerRender(){
       + '<p class="hint">Espera instrucciones de Eddie. Esta pantalla se actualiza sola.</p></div>';
   } else if (d.st === 'alive') {
     h += '<div class="stats">'+(d.round>=2?'<span class="chip">Ronda <b>2</b></span>':'')+'<span class="chip">Tus muertes <b>'+d.kills+'</b></span><span class="chip">Vivos <b>'+d.alive+'</b></span><span class="chip">Fin <b>12:00am</b></span></div>';
-    if (noteShow(d)) h += '<div class="banner">'+NOTE[d.note.k]+'</div>';
-    h += '<div class="card '+(P.hidden?'hidden':'')+'" id="card"><div class="secret"><div class="lbl">Tu víctima</div><div class="victim">'+esc(d.target)+'</div>'
+    if (d.note && NOTE[d.note.k]) h += '<div class="banner'+(noteFresh(d)?'':' old')+'">'+esc(noteText(d))+'</div>';
+    h += '<div class="card '+(P.hidden?'hidden':'')+'" id="card"><div class="secret"><div class="lbl">Tu víctima actual</div><div class="victim">'+esc(d.target)+'</div>'
       + '<div class="lbl">Tu misión</div><p class="mission">Haz que '+esc(d.target)+' '+esc(d.mission)+'.</p>'
       + '<p class="hint">Apenas lo haga (aunque sea sin que la provoques, cuenta igual), dile en voz baja: <b>«estás muerto»</b>.</p></div>'
       + '<div class="veil" onclick="playerReveal()"><div class="eye">👁</div><div class="t">TOCA PARA VER</div><div class="s">tu víctima y tu misión (que nadie mire)</div></div></div>'
@@ -229,7 +233,7 @@ function playerRender(){
 function playerLoad(force){
   if (P.busy) return;
   api({a:'me', t:P.tok}).then(function(d){
-    var key = JSON.stringify(strip(d)) + '|' + noteShow(d) + '|' + P.hidden;
+    var key = JSON.stringify(strip(d)) + '|' + noteFresh(d) + '|' + P.hidden;
     P.data = d; if (key !== P.key) { P.key = key; playerRender(); }
     if (force) toast('Actualizado');
   }).catch(function(){ var e=document.getElementById('err'); if(e) e.textContent='Sin conexión. Reintentando...'; if(!P.data){P.data={ok:false,err:'Sin conexión. Recarga la página.'};playerRender();P.data=null} });
