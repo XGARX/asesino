@@ -364,9 +364,11 @@ function adminRender(){
     acts += '<button class="sm" onclick="adminCopy(\''+p.id+'\')">Copiar link</button>'
       + '<a class="sm" target="_blank" href="https://wa.me/?text='+encodeURIComponent(waText(p))+'">WhatsApp</a>'
       + '<button class="sm" onclick="adminEdit(\''+p.id+'\')">Editar</button>';
+    if (d.game==='lobby' || p.st==='none' || p.st==='out') acts += '<button class="sm r" onclick="adminDelete(\''+p.id+'\')">Borrar</button>';
     h += '<div class="row"><div class="top"><span class="n">'+esc(p.name)+'</span>'+tag+'</div><div class="acts">'+acts+'</div></div>';
   });
   if (d.game!=='over') h += '<h2>LLEGÓ ALGUIEN QUE NO ESTÁ EN LA LISTA</h2><div class="addnew"><input class="inp" id="newname" placeholder="Nombre" maxlength="20"><button class="btn" style="width:auto" onclick="adminNew()">Agregar</button></div>';
+  if (d.gone) h += '<button class="hide-btn" style="margin-top:16px" onclick="adminRestore()">Restaurar los '+d.gone+' borrados de la lista original</button>';
   if (d.game==='lobby') h += '<div class="bar"><button class="btn ghost" style="grid-column:1/3" onclick="adminReset()">Reiniciar todo</button></div>';
   h += '</div>';
   app.innerHTML = h;
@@ -385,6 +387,8 @@ function adminRemove(id){ask('¿Sacar a '+byId(id).name+'?','Sale del juego y su
 function adminAdd(id){ask('¿Meter a '+byId(id).name+'?','Se inserta en la cadena en un lugar al azar.','Meter al juego',function(){adminCall({a:'add',id:id},'Adentro')})}
 function adminUndo(id){ask('¿Deshacer la muerte de '+byId(id).name+'?','Vuelve a la cadena y a su asesino se le resta la muerte.','Deshacer',function(){adminCall({a:'undo',id:id},'Muerte deshecha')})}
 function adminRevive(id){ask('¿Revivir a '+byId(id).name+'?','Entra a la ronda 2 con 0 muertes, víctima y misión nuevas.','Revivir',function(){adminCall({a:'revive',id:id},'Revivido')})}
+function adminDelete(id){ask('¿Borrar a '+byId(id).name+'?','Sale de la lista y su link deja de funcionar. No afecta a los demás.','BORRAR',function(){adminCall({a:'delete',id:id},'Borrado')},true)}
+function adminRestore(){ask('¿Restaurar borrados?','Vuelven a la lista los jugadores originales que borraste, marcados como "No viene".','Restaurar',function(){adminCall({a:'restore'},'Restaurados')})}
 function adminNew(){var n=document.getElementById('newname').value.trim();if(!n)return toast('Pon el nombre');adminCall({a:'addnew',name:n},'Agregado. Mándale su link.')}
 function adminEdit(id){
   var p=byId(id), hid=p.m1===null;
