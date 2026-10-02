@@ -53,6 +53,9 @@ h1{font-family:Cinzel,Georgia,serif;font-weight:700;text-align:center;font-size:
 .kl{text-align:center;color:var(--dim);font-size:14px;margin:-6px 0 16px}
 .kl b{color:var(--bone);font-weight:600}
 .rules+.kl,.card+.kl{margin:16px 0 0}
+.say{margin-top:10px;text-align:center;font-size:19px;color:var(--bone);border:1px solid var(--line);border-radius:12px;padding:12px 10px;background:rgba(255,255,255,.03)}
+.say b{color:var(--gold);font-family:Cinzel,Georgia,serif;letter-spacing:.08em;font-size:1.15em}
+.hint2{margin-top:8px;color:var(--dim);font-size:12.5px;text-align:center}
 .pista{margin-top:14px;border:1px dashed var(--line);border-radius:12px;padding:11px 14px;color:var(--dim);font-size:14px;text-align:center}
 .pista b{color:var(--bone)}
 .big{font-size:64px;text-align:center;margin-top:10px}
@@ -126,6 +129,16 @@ h1{font-family:Cinzel,Georgia,serif;font-weight:700;text-align:center;font-size:
 .cks{text-align:left;max-height:46vh;overflow:auto;margin-bottom:4px}
 .ck{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;font-size:17px;font-weight:600;cursor:pointer}
 .ck input{width:22px;height:22px;accent-color:var(--blood)}
+.p.dead.sang{opacity:.9;border-color:var(--gold);color:var(--gold)}
+#snd{position:fixed;right:16px;bottom:16px;z-index:8;background:var(--gold);color:#111;border:0;border-radius:999px;padding:12px 18px;font:600 15px Inter,sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#flash{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4vw;opacity:0;pointer-events:none;transition:opacity .4s}
+#flash.on{opacity:1}
+#flash.k{background:radial-gradient(ellipse at center,rgba(125,22,32,.97),rgba(10,10,12,.98) 75%)}
+#flash.g{background:radial-gradient(ellipse at center,rgba(90,72,30,.97),rgba(10,10,12,.98) 75%)}
+.fl1{font-size:clamp(60px,12vw,190px);line-height:1}
+.fl2{font-family:Cinzel,serif;font-weight:700;font-size:clamp(44px,10vw,170px);line-height:1.05;color:var(--bone);overflow-wrap:anywhere}
+.fl3{font-size:clamp(20px,3.6vw,60px);color:#e7dcc6;margin-top:1.5vh}
+.fl3 b{color:#fff;font-weight:600}
 .w2{font-family:Cinzel,serif;font-weight:700;font-size:clamp(22px,3.6vw,56px);color:var(--gold);line-height:1.15}
 pre.chain{white-space:pre-wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;font:14px/1.6 Inter,sans-serif;margin-top:8px}
 
@@ -175,8 +188,8 @@ function countdown(endAt){
 function hhmm(t){var d=new Date(t);return d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',hour12:false})}
 function winText(w){return w.length>1 ? w.slice(0,-1).join(', ')+' y '+w[w.length-1] : (w[0]||'Nadie')}
 var RULES = [
-  'Cuando tu víctima haga la misión, dile en voz baja <b>«estás muerto»</b>. Si la hace sola, sin que la provoques, <b>cuenta igual</b>.',
-  'Si te matan, aprieta <b>«Me mataron»</b>. Tu asesino hereda tu víctima y su misión.',
+  'Cuando tu víctima haga la misión, dile en voz baja <b>«estás muerto»</b> y la <b>palabra secreta</b> de tu tarjeta. Si la hace sola, sin que la provoques, <b>cuenta igual</b>.',
+  'Si te matan, aprieta <b>«Me mataron»</b> y confirma la palabra. Tu asesino hereda tu víctima y su misión.',
   'Gana el último vivo. A medianoche gana quien tenga más muertes.'
 ];
 
@@ -238,14 +251,16 @@ function playerRender(){
     if (d.note && NOTE[d.note.k]) h += '<div class="banner'+(noteFresh(d)?'':' old')+'">'+esc(noteText(d))+'</div>';
     h += '<div class="card '+(P.hidden?'hidden':'')+'" id="card"><div class="secret"><div class="lbl">Tu víctima actual</div><div class="victim">'+esc(d.target)+'</div>'
       + '<div class="lbl">Tu misión</div><p class="mission">Haz que '+esc(d.target)+' '+esc(d.mission)+'.</p>'
-      + '<p class="hint">Apenas lo haga (aunque sea sin que la provoques, cuenta igual), dile en voz baja: <b>«estás muerto»</b>.</p></div>'
+      + '<p class="hint">Apenas lo haga (aunque sea sin que la provoques, cuenta igual), dile en voz baja:</p>'
+      + '<div class="say">«estás muerto, <b>'+esc(d.word||'')+'</b>»</div>'
+      + '<p class="hint2">'+esc(d.word||'')+' es la palabra secreta que prueba que eres su asesino.</p></div>'
       + '<div class="veil" onclick="playerReveal()"><div class="eye">👁</div><div class="t">TOCA PARA VER</div><div class="s">tu víctima y tu misión (que nadie mire)</div></div></div>'
       + (P.hidden?'':'<button class="hide-btn" onclick="playerHide()">Ocultar</button>')
       + (d.hint ? '<div class="pista"><b>Pista sobre ti:</b> quien te caza necesita que '+(d.hint==='d'?'<b>digas</b> algo. Cuidado con lo que dices.':'<b>hagas</b> algo. Cuidado con lo que haces.')+'</div>' : '')
       + '<div class="dead-zone"><button class="btn red" onclick="playerAskDie()">ME MATARON</button><small>Apriétalo solo si tu asesino te dijo «estás muerto».</small></div>';
   } else if (d.st === 'dead') {
     h += '<div class="big">'+(d.round<2?'👻':'💀')+'</div><p class="sub">'+(d.round<2?'Estás muerto. Ahora eres un fantasma.':'Estás muerto')+'</p>'
-      + (d.round<2 ? '<div class="banner">Ya no juegas, pero hay una pequeña posibilidad de que revivas.</div>' : '')
+      + (d.round<2 ? '<div class="banner">'+(d.revive ? (d.sang ? '✅ Ya cantaste. Revives cuando empiece la ronda 2.' : '🎤 ¡Puedes revivir! Canta en el karaoke (la canción que quieras, un coro basta) y avísale a Eddie.') : 'Ya no juegas, pero hay una pequeña posibilidad de que revivas.')+'</div>' : '')
       + '<div class="card" style="margin-top:18px"><div class="lbl">Te mató</div><div class="victim">'+esc(d.killedBy||'?')+'</div>'
       + '<p class="hint">'+(d.round<2?'Esta pantalla se actualiza sola. ':'Ya no juegas, pero la fiesta sigue. ')+'<b>Guarda el secreto:</b> no cuentes quién te mató ni a quién estabas cazando.</p></div>';
   } else {
@@ -271,8 +286,11 @@ function strip(d){var o=Object.assign({},d);delete o.now;return o}
 function playerReveal(){P.hidden=false;ls('asesino_r_'+P.tok,'1');P.key='';playerRender()}
 function playerHide(){P.hidden=true;ls('asesino_r_'+P.tok,'0');P.key='';playerRender()}
 function playerAskDie(){
-  modal('<h2>¿Te mataron?</h2><p>Solo confirma si tu asesino cumplió su misión y te dijo «estás muerto». No hay vuelta atrás.</p>'
-    +'<button class="btn red" id="yes" onclick="playerDie()">SÍ, ME MATARON</button><button class="btn ghost" onclick="closeModal()">No, sigo vivo</button>');
+  var w = (P.data && P.data.myword) || '';
+  modal('<h2>¿Te mataron?</h2>'
+    +(w ? '<p>Tu asesino tuvo que decirte:</p><div class="say" style="margin-bottom:12px">«estás muerto, <b>'+esc(w)+'</b>»</div><p>Si te dijeron otra palabra, o ninguna, <b style="color:var(--bone)">no es tu asesino</b>: sigues vivo.</p>'
+        : '<p>Solo confirma si tu asesino cumplió su misión y te dijo «estás muerto». No hay vuelta atrás.</p>')
+    +'<button class="btn red" id="yes" onclick="playerDie()">'+(w?'SÍ, ME DIJERON '+esc(w):'SÍ, ME MATARON')+'</button><button class="btn ghost" onclick="closeModal()">No, sigo vivo</button>');
 }
 function playerDie(){
   var b=document.getElementById('yes'); b.disabled=true; b.textContent='Muriendo...'; P.busy=true;
@@ -281,7 +299,48 @@ function playerDie(){
 }
 
 /* ---------------- MARCADOR TV ---------------- */
-var TV = {data:null, seen:0, first:true};
+var TV = {data:null, seen:0, first:true, ac:null, sound:false, queue:[], showing:false, revive:false, round:1};
+function tvSoundOn(){
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    TV.ac = TV.ac || new AC(); TV.ac.resume(); TV.sound = true;
+    if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function(){});
+    tvBeep('ok');
+  } catch(e) {}
+  var b = document.getElementById('snd'); if (b) b.remove();
+}
+// sonidos sintetizados (sin archivos): 'kill' = disparo + campanada grave, 'ok' = dos notas, 'fan' = fanfarria corta
+function tvBeep(kind){
+  if (!TV.sound || !TV.ac) return;
+  try {
+    var ac = TV.ac, t = ac.currentTime + 0.02, out = ac.createGain(); out.gain.value = 0.9; out.connect(ac.destination);
+    var tone = function(freq, start, dur, type, vol){
+      var o = ac.createOscillator(), g = ac.createGain(); o.type = type || 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t+start); g.gain.exponentialRampToValueAtTime(vol||0.6, t+start+0.02); g.gain.exponentialRampToValueAtTime(0.0001, t+start+dur);
+      o.connect(g); g.connect(out); o.start(t+start); o.stop(t+start+dur+0.05);
+    };
+    if (kind === 'kill') {
+      var len = Math.floor(ac.sampleRate*0.35), buf = ac.createBuffer(1, len, ac.sampleRate), ch = buf.getChannelData(0);
+      for (var i=0;i<len;i++) ch[i] = (Math.random()*2-1) * Math.pow(1-i/len, 3);
+      var src = ac.createBufferSource(), ng = ac.createGain(); src.buffer = buf; ng.gain.value = 1.0; src.connect(ng); ng.connect(out); src.start(t);
+      tone(98, 0.30, 2.6, 'sine', 0.9); tone(196, 0.30, 2.0, 'triangle', 0.35); tone(293.7, 0.30, 1.4, 'sine', 0.18);
+      tone(98, 1.25, 2.4, 'sine', 0.7); tone(196, 1.25, 1.8, 'triangle', 0.25);
+    } else if (kind === 'fan') {
+      tone(392, 0, 0.22, 'triangle', 0.5); tone(523.3, 0.2, 0.22, 'triangle', 0.5); tone(659.3, 0.4, 0.22, 'triangle', 0.5); tone(784, 0.6, 0.9, 'triangle', 0.6);
+    } else { tone(660, 0, 0.15, 'sine', 0.4); tone(880, 0.16, 0.25, 'sine', 0.4); }
+  } catch(e) {}
+}
+// aviso a pantalla completa, uno a la vez
+function tvFlash(html, kind){ TV.queue.push({html: html, kind: kind}); if (!TV.showing) tvNextFlash(); }
+function tvNextFlash(){
+  var el = document.getElementById('flash'), it = TV.queue.shift();
+  if (!it) { TV.showing = false; if (el) el.classList.remove('on'); return; }
+  TV.showing = true;
+  if (!el) { el = document.createElement('div'); el.id = 'flash'; document.body.appendChild(el); }
+  el.innerHTML = it.html; el.className = 'on ' + (it.kind === 'kill' ? 'k' : 'g');
+  tvBeep(it.kind);
+  setTimeout(function(){ el.classList.remove('on'); setTimeout(tvNextFlash, 450); }, it.kind === 'kill' ? 6000 : 7000);
+}
 function tvRender(){
   var d = TV.data; if (!d || !d.ok) return;
   var alive = d.players.filter(function(p){return p.st==='alive'||p.st==='wait'});
@@ -294,20 +353,30 @@ function tvRender(){
   else h += '<b>Fin</b>del juego';
   h += '</div></header>';
   if (d.game==='over') h += '<div class="win"><h3>'+(d.winners.length>1?'GANADORES':'GANADOR')+'</h3><div class="w">'+esc(winText(d.winners))+'</div></div>';
-  if (d.wait2) h += '<div class="win"><h3>ÚLTIMO VIVO</h3><div class="w2">Queda un solo vivo. Atentos a lo que diga Eddie.</div></div>';
+  if (d.revive) h += '<div class="win"><h3>RESURRECCIÓN ABIERTA</h3><div class="w2">🎤 Fantasmas: canten en el karaoke y avísenle a Eddie para revivir.</div></div>';
+  if (d.wait2 && !d.revive) h += '<div class="win"><h3>ÚLTIMO VIVO</h3><div class="w2">Queda un solo vivo. Atentos a lo que diga Eddie.</div></div>';
   h += '<main><section><h3>'+(d.game==='lobby'?'JUGADORES':'SIGUEN VIVOS')+'</h3><div class="grid">'
     + alive.map(function(p){return '<div class="p"><span>'+esc(p.name)+'</span>'+(d.game==='lobby'?'':'<span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'0')+'</span>')+'</div>'}).join('') + '</div>';
   if (dead.length||out.length) h += '<div class="deadwrap"><h3>'+(d.round>=2?'CAÍDOS':'FANTASMAS')+'</h3><div class="grid">'
-    + dead.map(function(p){return '<div class="p dead"><span>'+(d.round>=2?'💀 ':'👻 ')+esc(p.name)+'</span><span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'')+'</span></div>'}).join('')
+    + dead.map(function(p){return '<div class="p dead'+(p.sang?' sang':'')+'"><span>'+(p.sang?'🎤 ':d.round>=2?'💀 ':'👻 ')+esc(p.name)+'</span><span class="k'+(p.kills?'':' z')+'">'+(p.kills?'🔪 '+p.kills:'')+'</span></div>'}).join('')
     + out.map(function(p){return '<div class="p out"><span>'+esc(p.name)+' (se fue)</span></div>'}).join('') + '</div></div>';
   h += '</section><section><h3>ÚLTIMAS MUERTES</h3><div class="feed">';
   var feed = d.feed.slice().reverse();
+  if (!TV.first) {
+    feed.filter(function(f){return f.t > TV.seen}).reverse().forEach(function(f){
+      tvFlash('<div class="fl1">☠</div><div class="fl2">'+esc(f.v)+'</div><div class="fl3">cayó a manos de <b>'+esc(f.k)+'</b></div>', 'kill');
+    });
+    if (d.revive && !TV.revive) tvFlash('<div class="fl1">🎤</div><div class="fl2">Resurrección abierta</div><div class="fl3">Fantasmas: canten en el karaoke y revivan</div>', 'fan');
+    if (d.round >= 2 && TV.round < 2) tvFlash('<div class="fl1">🔪</div><div class="fl2">Ronda 2</div><div class="fl3">Todos tienen víctima y misión nuevas</div>', 'fan');
+  }
+  TV.revive = !!d.revive; TV.round = d.round;
   if (!feed.length) h += '<div class="empty">'+(d.game==='lobby'?'Abre tu link secreto y espera la señal.':'Todavía nadie ha muerto. Qué tensión.')+'</div>';
   h += feed.slice(0,9).map(function(f){
     var isNew = !TV.first && f.t > TV.seen;
     return '<div class="f'+(isNew?' new':'')+'"><span class="h">'+hhmm(f.t)+'</span><b>'+esc(f.v)+'</b> cayó a manos de <b>'+esc(f.k)+'</b><i>Misión: hacer que '+esc(f.v)+' '+esc(f.m)+'</i></div>';
   }).join('');
   h += '</div></section></main><div class="tvrules">'+RULES.map(function(r,i){return '<div><b>'+(i+1)+'</b>'+r+'</div>'}).join('')+'</div></div>';
+  if (!TV.sound) h += '<button id="snd" onclick="tvSoundOn()">🔊 Activar sonido</button>';
   app.innerHTML = h;
   if (feed.length) TV.seen = feed[0].t;
   TV.first = false;
@@ -342,6 +411,10 @@ function adminRender(){
   var h = '<div class="adm"><div class="brand">ADMIN</div><h1 style="font-size:24px">'+st+'</h1><p class="sub">'
     + (d.game==='lobby' ? pres+' marcados como presentes' : d.game==='running' ? alive+' vivos · termina en '+countdown(d.endAt) : 'Ganó: '+esc(winText(d.winners))) + '</p><div class="bar">';
   if (d.game==='lobby') h += '<button class="btn red" style="grid-column:1/3" onclick="adminStart()">EMPEZAR JUEGO</button>';
+  var nDead = d.players.filter(function(p){return p.st==='dead'}).length, nSang = d.players.filter(function(p){return p.st==='dead'&&p.sang}).length;
+  if (d.game==='running' && d.round===1 && nDead) h += d.revive
+    ? '<button class="btn" style="grid-column:1/3;border-color:var(--gold);color:var(--gold)" onclick="adminRevOpen(0)">🎤 Resurrección abierta · '+nSang+' de '+nDead+' cantaron (tocar para cerrar)</button>'
+    : '<button class="btn" style="grid-column:1/3" onclick="adminRevOpen(1)">🎤 Abrir resurrección (avisa a los fantasmas)</button>';
   if (d.game!=='lobby' && d.round===1) h += '<button class="btn red" style="grid-column:1/3" onclick="adminRound2()">INICIAR RONDA 2</button>';
   if (d.game==='running') h += '<button class="btn" onclick="adminEnd()">Terminar ahora</button>';
   if (d.game!=='lobby') h += '<button class="btn" onclick="adminReset()">Reiniciar</button>';
@@ -358,7 +431,8 @@ function adminRender(){
       tag = p.st==='alive' ? '<span class="tag alive">Vivo · '+p.kills+'</span>' : p.st==='dead' ? '<span class="tag dead">Muerto · '+p.kills+'</span>' : p.st==='out' ? '<span class="tag">Se fue</span>' : '<span class="tag">Fuera</span>';
       if (p.st==='alive') acts += '<button class="sm r" onclick="adminRemove(\''+p.id+'\')">Sacar (se va)</button>';
       else if (p.st==='dead' && p.dr && p.dr<d.round) acts += '<button class="sm g" onclick="adminRevive(\''+p.id+'\')">Revivir (cantó)</button>';
-      else if (p.st==='dead') acts += '<button class="sm g" onclick="adminUndo(\''+p.id+'\')">Deshacer muerte</button>';
+      else if (p.st==='dead') acts += (d.round===1 && d.revive ? '<button class="sm g" onclick="adminSang(\''+p.id+'\','+(p.sang?0:1)+')">'+(p.sang?'✓ Cantó (quitar)':'🎤 Cantó')+'</button>' : '')
+        + '<button class="sm'+(d.revive?'':' g')+'" onclick="adminUndo(\''+p.id+'\')">Deshacer muerte</button>';
       else if (d.game==='running') acts += '<button class="sm g" onclick="adminAdd(\''+p.id+'\')">Meter al juego</button>';
     }
     acts += '<button class="sm" onclick="adminCopy(\''+p.id+'\')">Copiar link</button>'
@@ -413,26 +487,33 @@ function adminGuide(){
     +sec('Antes de la fiesta',[
       'Esta pantalla debe decir <b>Lobby</b>. Si dice otra cosa, aprieta «Reiniciar».',
       'Revisa nombres y misiones con «Editar». Después imprime las <b>Tarjetas QR</b>.',
-      'Pon el <b>Marcador TV</b> en la tele y deja este admin abierto en tu teléfono.'])
+      'Abre el <b>Marcador</b> en el iPad con la corneta y toca <b>«Activar sonido»</b>. Pon el bloqueo automático del iPad en «Nunca».',
+      'Deja este admin abierto en tu teléfono.'])
     +sec('Para empezar',[
       'Entrega cada tarjeta al llegar. Que abran su link y lo dejen abierto.',
       'Cuando esté la mayoría: «Quitar» a los que no llegaron y luego <b>«Empezar juego»</b>.',
-      'Di en voz alta: <i>«Abran su link. Ahí sale su víctima y su misión, es secreto. Cuando su víctima haga la misión, le dicen bajito “estás muerto”. El que muere aprieta “Me mataron” en su teléfono, no el asesino. Gana el último vivo.»</i>'])
+      'Di en voz alta: <i>«Abran su link. Ahí sale su víctima y su misión, es secreto. Cuando su víctima haga la misión, le dicen bajito “estás muerto” y la palabra secreta que sale en su tarjeta. El que muere aprieta “Me mataron” en su teléfono, no el asesino. Gana el último vivo.»</i>'])
     +sec('Durante la noche',[
       'Llega alguien tarde: «Meter al juego» (o «Marcar presente» si no has empezado) y le das su tarjeta.',
       'Alguien se va: «Sacar». Alguien apretó «Me mataron» por error: «Deshacer muerte».',
       'Si discuten una muerte, decides tú. Regla: si la víctima hizo la misión, cuenta, aunque nadie la provocara.',
-      'Comenta las muertes de la tele en voz alta. Eso mantiene vivo el juego.'])
+      'Cada muerte suena en el marcador y sale en grande. No tienes que anunciar nada.'])
     +sec('Ronda 2 (opcional) y final',[
-      'Si a las 10:15 hay 6 o más fantasmas: los que canten reviven. Aprieta «Iniciar ronda 2» y marca a los que cantaron.',
+      'Si a las 10:15 hay 6 o más fantasmas: aprieta <b>«Abrir resurrección»</b>. A cada fantasma le sale el aviso de cantar en el karaoke.',
+      'Marca <b>«Cantó»</b> a cada fantasma que cante. Cuando terminen, aprieta <b>«Iniciar ronda 2»</b>: los que cantaron ya salen marcados.',
       'Si hay pocos fantasmas, no la uses.',
       'A medianoche termina solo. Para terminar antes: «Terminar ahora». Ten un premio para el ganador.'])
     +'</div><button class="btn ghost" style="margin-top:14px" onclick="closeModal()">Cerrar</button>');
 }
+function adminRevOpen(v){
+  if (v) ask('¿Abrir la resurrección?','A cada fantasma le sale en su pantalla que puede revivir cantando en el karaoke, y el marcador lo anuncia. Tú marcas «Cantó» a cada uno. Después aprietas «Iniciar ronda 2».','ABRIR RESURRECCIÓN',function(){adminCall({a:'revopen',v:1},'Resurrección abierta')},true);
+  else ask('¿Cerrar la resurrección?','Los fantasmas dejan de ver el aviso. Los que ya marcaste como «Cantó» se conservan.','Cerrar',function(){adminCall({a:'revopen',v:0},'Cerrada')});
+}
+function adminSang(id,v){adminCall({a:'sang',id:id,v:v},v?'Marcado: cantó':'Desmarcado')}
 function adminRound2(){
   var dead=A.data.players.filter(function(p){return p.st==='dead'});
   modal('<h2>Ronda 2</h2><p>'+(dead.length?'Marca a los que reviven (los que cantaron).':'No hay muertos. Solo se rebaraja la cadena y cambian las misiones.')+'</p><div class="cks">'
-    +dead.map(function(p){return '<label class="ck"><input type="checkbox" value="'+p.id+'"> '+esc(p.name)+'</label>'}).join('')+'</div>'
+    +dead.map(function(p){return '<label class="ck"><input type="checkbox" value="'+p.id+'"'+(p.sang?' checked':'')+'> '+esc(p.name)+(p.sang?' 🎤':'')+'</label>'}).join('')+'</div>'
     +'<button class="btn red" id="r2next" onclick="adminRound2Confirm()">CONTINUAR</button><button class="btn ghost" onclick="closeModal()">Cancelar</button>');
 }
 function adminRound2Confirm(){
