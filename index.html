@@ -169,16 +169,39 @@ var app = document.getElementById('app');
 var skew = 0;
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function api(params){
-  var u = API + '?' + new URLSearchParams(Object.assign({_: Date.now()}, params)).toString();
+function api(params, ms){
+  var u = API + '?' + new URLSearchParams(Object.assign({_: Date.now()+'.'+Math.floor(Math.random()*1e6)}, params)).toString();
   var opt = {redirect:'follow'}, timer = null;
-  if (window.AbortController) { var ac = new AbortController(); opt.signal = ac.signal; timer = setTimeout(function(){ac.abort()}, 20000); }
+  if (window.AbortController) { var ac = new AbortController(); opt.signal = ac.signal; timer = setTimeout(function(){ac.abort()}, ms || 20000); }
   return fetch(u, opt).then(function(r){return r.json()}).then(function(d){
     if (timer) clearTimeout(timer);
     if (d && d.now) skew = d.now - Date.now();
     return d;
+  }, function(e){ if (timer) clearTimeout(timer); throw e; });
+}
+// Lecturas: el servidor de Google a veces tarda o falla una petición suelta. Si la primera no responde
+// en 3.5 s se lanza otra en paralelo (y una tercera a los 8 s); si falla, se reintenta. Gana la primera que llegue.
+function apiRead(params, d1, d2){
+  return new Promise(function(res, rej){
+    var done = false, started = 0, pending = 0, timers = [];
+    function finish(){ done = true; timers.forEach(clearTimeout); }
+    function fire(){
+      if (done || started >= 3) return;
+      started++; pending++;
+      api(params, 12000).then(function(d){ if (done) return; finish(); res(d); }, function(){
+        pending--; if (done) return;
+        if (started < 3) timers.push(setTimeout(fire, 400));
+        else if (pending <= 0) { finish(); rej(new Error('net')); }
+      });
+    }
+    fire();
+    timers.push(setTimeout(fire, d1 || 3500));
+    timers.push(setTimeout(fire, d2 || 8000));
   });
 }
+// «Me mataron» se puede repetir sin riesgo (si ya estás muerto, no cambia nada): mismo respaldo, con más espera.
+function apiTwice(params){ return apiRead(params, 6000, 12000); }
+function newer(old, d){ return !old || !old.now || !d || !d.now || d.now >= old.now; }
 function toast(t){var el=document.getElementById('toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.remove('on')},2200)}
 function modal(html){document.getElementById('modalbox').innerHTML=html;document.getElementById('modal').classList.add('on')}
 function closeModal(){document.getElementById('modal').classList.remove('on')}
@@ -213,7 +236,7 @@ function victimsLoad(d){
   var vk = d.kills + '|' + d.name + '|' + d.round;
   if (P.vk === vk) return;
   P.vk = vk;
-  api({a:'board'}).then(function(b){
+  apiRead({a:'board'}).then(function(b){
     if (!b.ok) { P.vk = ''; return; }
     P.victims = b.feed.filter(function(f){return f.k===d.name}).slice(-d.kills).map(function(f){return f.v});
     playerRender();
@@ -275,13 +298,22 @@ function playerRender(){
   app.innerHTML = h;
 }
 function playerLoad(force){
-  if (P.busy) return;
-  api({a:'me', t:P.tok}).then(function(d){
+  if (P.busy || (P.loading && !force)) return;
+  P.loading = true;
+  apiRead({a:'me', t:P.tok}).then(function(d){
+    P.loading = false;
+    if (P.busy || !newer(P.data, d)) return;
     var key = JSON.stringify(strip(d)) + '|' + noteFresh(d) + '|' + P.hidden;
     P.data = d; if (key !== P.key) { P.key = key; playerRender(); }
+    var e=document.getElementById('err'); if(e) e.textContent='';
     victimsLoad(d);
     if (force) toast('Actualizado');
-  }).catch(function(){ var e=document.getElementById('err'); if(e) e.textContent='Sin conexión. Reintentando...'; if(!P.data){P.data={ok:false,err:'Sin conexión. Reintentando sola...'};playerRender();P.data=null} });
+  }).catch(function(){
+    P.loading = false;
+    var e=document.getElementById('err'); if(e) e.textContent='Sin conexión. Reintentando...';
+    if(!P.data){P.data={ok:false,err:'Sin conexión. Reintentando sola...'};P.key='';playerRender();P.data=null}
+    clearTimeout(P.rt); P.rt = setTimeout(playerLoad, 2000);
+  });
 }
 function strip(d){var o=Object.assign({},d);delete o.now;return o}
 // Una vez revelada, la tarjeta se queda visible (también al recargar) hasta que aprieten "Ocultar".
@@ -296,7 +328,7 @@ function playerAskDie(){
 }
 function playerDie(){
   var b=document.getElementById('yes'); b.disabled=true; b.textContent='Muriendo...'; P.busy=true;
-  api({a:'die', t:P.tok}).then(function(d){P.busy=false;closeModal();P.data=d;P.key='';playerRender();victimsLoad(d)})
+  apiTwice({a:'die', t:P.tok}).then(function(d){P.busy=false;closeModal();P.data=d;P.key='';playerRender();victimsLoad(d)})
     .catch(function(){P.busy=false;b.disabled=false;b.textContent='SÍ, ME MATARON';toast('Sin conexión. Intenta otra vez.')});
 }
 
@@ -383,10 +415,11 @@ function tvRender(){
   if (feed.length) TV.seen = feed[0].t;
   TV.first = false;
 }
-function tvLoad(){api({a:'board'}).then(function(d){
+function tvLoad(){ if (TV.loading) return; TV.loading = true; apiRead({a:'board'}).then(function(d){
+  TV.loading = false; if (!newer(TV.data, d)) return;
   var same = TV.data && JSON.stringify(strip(TV.data))===JSON.stringify(strip(d));
   TV.data=d; if(!same) tvRender();
-}).catch(function(){})}
+}).catch(function(){ TV.loading = false; })}
 function tvTick(){var el=document.getElementById('cd'); if(el&&TV.data) el.textContent=countdown(TV.data.endAt)}
 
 /* ---------------- ADMIN ---------------- */
@@ -402,7 +435,7 @@ function adminCall(params, okMsg){
     return d;
   }).catch(function(){
     toast('Sin conexión. Revisa si el cambio se aplicó.');
-    setTimeout(function(){ api({a:'admin',k:A.k}).then(function(d){ if(d.ok){A.data=d;adminRender()} }).catch(function(){}); }, 1500);
+    setTimeout(function(){ apiRead({a:'admin',k:A.k}).then(function(d){ if(d.ok){A.data=d;adminRender()} }).catch(function(){}); }, 1500);
   });
 }
 function adminRender(){
@@ -571,11 +604,11 @@ if (P.tok) {
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) playerLoad(); });
 } else if (A.k && qs.get('print')) {
   var sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-  sc.onload=function(){api({a:'admin',k:A.k}).then(function(d){d.ok?printRender(d):(app.innerHTML='<div class="wrap"><h1>No autorizado</h1></div>')})};
+  sc.onload=function(){apiRead({a:'admin',k:A.k}).then(function(d){d.ok?printRender(d):(app.innerHTML='<div class="wrap"><h1>No autorizado</h1></div>')})};
   document.head.appendChild(sc);
 } else if (A.k) {
   var adminBoot = function(){
-    api({a:'admin',k:A.k}).then(function(d){
+    apiRead({a:'admin',k:A.k}).then(function(d){
       if (d.ok) { A.data=d; adminRender(); }
       else if (d.err==='No autorizado') app.innerHTML='<div class="wrap"><div class="brand">ADMIN</div><h1>No autorizado</h1><p class="sub">Revisa que el link del admin esté completo.</p></div>';
       else { app.innerHTML='<div class="wrap"><div class="brand">ADMIN</div><p class="sub" style="margin-top:30px">'+esc(d.err||'Error')+'. Reintentando...</p></div>'; setTimeout(adminBoot, 3000); }
@@ -584,7 +617,7 @@ if (P.tok) {
     });
   };
   adminBoot();
-  setInterval(function(){ if (A.data && !document.hidden && !document.activeElement.matches('input,textarea')) api({a:'admin',k:A.k}).then(function(d){ if(d.ok){ var same=JSON.stringify(strip(A.data))===JSON.stringify(strip(d)); A.data=d; if(!same) adminRender(); } }).catch(function(){}); }, 8000);
+  setInterval(function(){ if (A.data && !document.hidden && !document.activeElement.matches('input,textarea') && !A.loading) { A.loading = true; apiRead({a:'admin',k:A.k}).then(function(d){ A.loading = false; if(d.ok && newer(A.data, d)){ var same=JSON.stringify(strip(A.data))===JSON.stringify(strip(d)); A.data=d; if(!same) adminRender(); } }).catch(function(){ A.loading = false; }); } }, 8000);
 } else {
   tvLoad(); setInterval(tvLoad, 5000); setInterval(tvTick, 1000);
 }
