@@ -50,6 +50,9 @@ h1{font-family:Cinzel,Georgia,serif;font-weight:700;text-align:center;font-size:
 .rules li{counter-increment:r;position:relative;padding:0 0 10px 34px;color:#cfc9bc;font-size:15px}
 .rules li:before{content:counter(r);position:absolute;left:0;top:0;width:24px;height:24px;border:1px solid var(--gold);color:var(--gold);border-radius:50%;font:700 12px Cinzel,serif;display:flex;align-items:center;justify-content:center}
 .sub+.banner{margin-top:14px}
+.kl{text-align:center;color:var(--dim);font-size:14px;margin:-6px 0 16px}
+.kl b{color:var(--bone);font-weight:600}
+.rules+.kl,.card+.kl{margin:16px 0 0}
 .pista{margin-top:14px;border:1px dashed var(--line);border-radius:12px;padding:11px 14px;color:var(--dim);font-size:14px;text-align:center}
 .pista b{color:var(--bone)}
 .big{font-size:64px;text-align:center;margin-top:10px}
@@ -178,6 +181,21 @@ var NOTE = {
   r2: ['Ronda 2: tienes víctima y misión nuevas', 'desde las'],
   chg: ['Tu víctima cambió', 'a las']
 };
+// Lista de a quiénes ha matado este jugador (sale del feed público del marcador).
+function killsLine(d){
+  return (d.kills>0 && P.victims && P.victims.length) ? '<div class="kl">☠ Has matado a: <b>'+P.victims.map(esc).join(', ')+'</b></div>' : '';
+}
+function victimsLoad(d){
+  if (!d.ok || !d.kills) { P.victims = []; P.vk = ''; return; }
+  var vk = d.kills + '|' + d.name + '|' + d.round;
+  if (P.vk === vk) return;
+  P.vk = vk;
+  api({a:'board'}).then(function(b){
+    if (!b.ok) { P.vk = ''; return; }
+    P.victims = b.feed.filter(function(f){return f.k===d.name}).slice(-d.kills).map(function(f){return f.v});
+    playerRender();
+  }).catch(function(){ P.vk = ''; });
+}
 function hora(t){try{return new Date(t).toLocaleTimeString('es',{hour:'numeric',minute:'2-digit',hour12:true})}catch(e){return hhmm(t)}}
 function noteText(d){var n=NOTE[d.note.k];return n[0]+' '+n[1]+' '+hora(d.note.t)+(n[2]||'')}
 // true = aviso recién visto (menos de 2 minutos desde la primera vez que se mostró en este teléfono)
@@ -208,7 +226,7 @@ function playerRender(){
       + '<div class="card" style="margin-top:18px"><div class="lbl">Ronda 1 terminada</div><p class="mission">Sobreviviste con '+d.kills+(d.kills===1?' muerte':' muertes')+'. Las conservas.</p>'
       + '<p class="hint">Espera instrucciones de Eddie. Esta pantalla se actualiza sola.</p></div>';
   } else if (d.st === 'alive') {
-    h += '<div class="stats">'+(d.round>=2?'<span class="chip">Ronda <b>2</b></span>':'')+'<span class="chip">Tus muertes <b>'+d.kills+'</b></span><span class="chip">Vivos <b>'+d.alive+'</b></span><span class="chip">Fin <b>12:00am</b></span></div>';
+    h += '<div class="stats">'+(d.round>=2?'<span class="chip">Ronda <b>2</b></span>':'')+'<span class="chip">Tus muertes <b>'+d.kills+'</b></span><span class="chip">Vivos <b>'+d.alive+'</b></span><span class="chip">Fin <b>12:00am</b></span></div>' + killsLine(d);
     if (d.note && NOTE[d.note.k]) h += '<div class="banner'+(noteFresh(d)?'':' old')+'">'+esc(noteText(d))+'</div>';
     h += '<div class="card '+(P.hidden?'hidden':'')+'" id="card"><div class="secret"><div class="lbl">Tu víctima actual</div><div class="victim">'+esc(d.target)+'</div>'
       + '<div class="lbl">Tu misión</div><p class="mission">Haz que '+esc(d.target)+' '+esc(d.mission)+'.</p>'
@@ -226,6 +244,7 @@ function playerRender(){
     h += '<p class="sub">'+(d.st==='out'?'Saliste del juego.':'Todavía no estás en el juego.')+'</p><div class="big">🚪</div>'
       + '<div class="card" style="margin-top:18px"><p class="mission">Dile a Eddie que te meta al juego.</p></div>';
   }
+  if (!(d.st === 'alive' && d.game === 'running' && !d.solo)) h += killsLine(d);
   h += '<div class="rules"><div class="lbl">Cómo se juega</div><ol>'+RULES.map(function(r){return '<li>'+r+'</li>'}).join('')+'</ol></div>';
   h += '<div class="err" id="err"></div><button class="hide-btn" style="margin:0 auto 10px" onclick="playerLoad(true)">Esta pantalla se actualiza sola · Actualizar ahora</button><a class="btn ghost" href="'+BASE+'" style="margin-top:8px">Ver marcador</a><div class="foot">Este link es solo tuyo. No lo compartas.</div></div>';
   app.innerHTML = h;
@@ -235,6 +254,7 @@ function playerLoad(force){
   api({a:'me', t:P.tok}).then(function(d){
     var key = JSON.stringify(strip(d)) + '|' + noteFresh(d) + '|' + P.hidden;
     P.data = d; if (key !== P.key) { P.key = key; playerRender(); }
+    victimsLoad(d);
     if (force) toast('Actualizado');
   }).catch(function(){ var e=document.getElementById('err'); if(e) e.textContent='Sin conexión. Reintentando...'; if(!P.data){P.data={ok:false,err:'Sin conexión. Recarga la página.'};playerRender();P.data=null} });
 }
@@ -248,7 +268,7 @@ function playerAskDie(){
 }
 function playerDie(){
   var b=document.getElementById('yes'); b.disabled=true; b.textContent='Muriendo...'; P.busy=true;
-  api({a:'die', t:P.tok}).then(function(d){P.busy=false;closeModal();P.data=d;P.key='';playerRender()})
+  api({a:'die', t:P.tok}).then(function(d){P.busy=false;closeModal();P.data=d;P.key='';playerRender();victimsLoad(d)})
     .catch(function(){P.busy=false;b.disabled=false;b.textContent='SÍ, ME MATARON';toast('Sin conexión. Intenta otra vez.')});
 }
 
